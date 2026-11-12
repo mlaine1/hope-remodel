@@ -1,0 +1,1567 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hope Lutheran Sanctuary — Redesign Studio</title>
+<style>
+:root{
+  --bg:#14110d; --panel:#1d1914; --panel2:#262019; --line:#3a3127; --ink:#ece4d2; --dim:#a99d86;
+  --gilt:#cfa94e; --gilt2:#e7c979; --red:#8e2a2a; --ok:#7fae7a; --warn:#e0a24a;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:13px/1.45 var(--sans);overflow:hidden}
+canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;outline:none}
+button,select,input{font:inherit;color:inherit}
+button{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:5px 10px;cursor:pointer}
+button:hover{border-color:var(--gilt)}
+button.on{background:var(--gilt);color:#1a1408;border-color:var(--gilt);font-weight:600}
+select,input[type=number],input[type=text]{background:#120f0b;border:1px solid var(--line);border-radius:5px;padding:4px 6px;max-width:100%}
+select{width:100%}
+input[type=number]{width:74px;font-variant-numeric:tabular-nums}
+h1,h2,h3{font-family:var(--serif);font-weight:600;margin:0}
+.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+
+#panel{position:fixed;left:0;top:0;bottom:54px;width:372px;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;z-index:5;transition:transform .2s}
+#panel.closed{transform:translateX(-372px)}
+#ptoggle{position:fixed;left:372px;top:10px;z-index:6;border-radius:0 6px 6px 0;border-left:none;padding:8px 7px;transition:left .2s;background:var(--panel)}
+#panel.closed + #ptoggle{left:0}
+#phead{padding:12px 14px 8px;border-bottom:1px solid var(--line)}
+#phead h1{font-size:18px;color:var(--gilt2);letter-spacing:.2px}
+#phead p{margin:2px 0 0;color:var(--dim);font-size:11.5px}
+#tabs{display:flex;gap:4px;padding:8px 10px 0}
+#tabs button{flex:1;border-radius:6px 6px 0 0;border-bottom:none;padding:6px 4px;font-size:12px}
+.tab{display:none;overflow:auto;flex:1;padding:8px 10px 20px;border-top:1px solid var(--line)}
+.tab.on{display:block}
+details.cat{border:1px solid var(--line);border-radius:7px;margin-bottom:6px;background:var(--panel2)}
+details.cat>summary{cursor:pointer;padding:8px 10px;display:flex;justify-content:space-between;gap:8px;font-family:var(--serif);font-size:14.5px;list-style:none}
+details.cat>summary::-webkit-details-marker{display:none}
+details.cat>summary:before{content:"▸";color:var(--gilt);margin-right:6px}
+details.cat[open]>summary:before{content:"▾"}
+details.cat>summary span.t{flex:1}
+details.cat>summary span.st{font:12px var(--sans);color:var(--gilt2)}
+.grp{padding:6px 10px 8px;border-top:1px solid var(--line)}
+.grp label.gl{display:block;color:var(--dim);font-size:11.5px;margin-bottom:3px}
+.grp label.ck{display:flex;gap:7px;align-items:flex-start;cursor:pointer}
+.grp .cl{font-size:11.5px;color:var(--gilt2);margin-top:3px}
+.grp .cl div{display:flex;justify-content:space-between;gap:8px}
+.grp .cl .q{color:var(--dim)}
+.grp .flag{color:var(--warn);font-size:11.5px;margin-top:3px}
+.grp.changed{box-shadow:inset 3px 0 0 var(--gilt)}
+.note{color:var(--dim);font-size:11.5px;margin:6px 2px}
+.warnbox{background:#3a2a12;border:1px solid #6b4d1c;color:#f0cf95;border-radius:6px;padding:6px 8px;font-size:11.5px;margin:6px 0}
+table{border-collapse:collapse;width:100%}
+th,td{padding:3px 6px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--dim);font-weight:500;font-size:11.5px;position:sticky;top:0;background:var(--panel)}
+td.r,th.r{text-align:right}
+tr.cat td{font-family:var(--serif);color:var(--gilt2);padding-top:8px;font-size:13.5px}
+tr.tot td{font-weight:600;border-top:1px solid var(--gilt)}
+.dimrow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:3px 2px;border-bottom:1px dashed var(--line)}
+.dimrow span{flex:1}
+.dimrow small{color:var(--dim)}
+
+#top{position:fixed;right:10px;top:10px;z-index:5;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:calc(100vw - 420px)}
+#top .seg{display:flex;background:rgba(20,17,13,.82);border:1px solid var(--line);border-radius:8px;padding:3px;gap:3px;backdrop-filter:blur(4px)}
+#top .seg button{border:none;background:transparent;padding:5px 9px}
+#top .seg button:hover{background:var(--panel2)}
+#top .seg button.on{background:var(--gilt)}
+#ba.on{background:var(--red);color:#fff;border-color:#c55}
+#hint{position:fixed;left:50%;bottom:66px;transform:translateX(-50%);background:rgba(20,17,13,.8);border:1px solid var(--line);padding:5px 12px;border-radius:20px;color:var(--dim);font-size:12px;z-index:4;pointer-events:none;white-space:nowrap}
+#badge{position:fixed;left:50%;top:58px;transform:translateX(-50%);background:var(--red);color:#fff;padding:4px 14px;border-radius:20px;font-family:var(--serif);z-index:4;display:none}
+
+#bar{position:fixed;left:0;right:0;bottom:0;height:54px;background:var(--panel);border-top:1px solid var(--line);z-index:7;display:flex;align-items:center;gap:16px;padding:0 14px;overflow:hidden}
+#bar .big{font-family:var(--serif);font-size:20px;color:var(--gilt2)}
+#bar .kv{display:flex;flex-direction:column;line-height:1.2;white-space:nowrap}
+#bar .kv small{color:var(--dim);font-size:10.5px;text-transform:uppercase;letter-spacing:.5px}
+#bar input[type=number]{width:52px;padding:2px 4px}
+#bar .sp{flex:1}
+.pill{display:inline-block;padding:1px 8px;border-radius:10px;font-weight:600;color:#14110d}
+#drawer{position:fixed;left:0;right:0;bottom:54px;max-height:52vh;background:var(--panel);border-top:1px solid var(--gilt);z-index:6;overflow:auto;padding:8px 14px 14px;display:none}
+#drawer.on{display:block}
+#drawer th{background:var(--panel)}
+.disc{color:var(--dim);font-size:11.5px;border-left:3px solid var(--warn);padding:4px 8px;margin:8px 0;background:#201a12}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:20;display:none;align-items:center;justify-content:center}
+#modal.on{display:flex}
+#modal .box{background:var(--panel);border:1px solid var(--gilt);border-radius:10px;padding:16px 18px;max-width:860px;width:92vw;max-height:86vh;overflow:auto}
+.sch{border:1px solid var(--line);border-radius:7px;padding:7px 9px;margin-bottom:6px;background:var(--panel2)}
+.sch b{font-family:var(--serif);font-size:14px}
+.sch .row{display:flex;gap:5px;margin-top:5px;flex-wrap:wrap;align-items:center}
+#err{position:fixed;inset:auto 0 60px 380px;color:#ffb4a8;background:#3a1612;padding:8px 12px;z-index:30;display:none;white-space:pre-wrap;font:12px monospace}
+#printArea{display:none}
+@media print{
+  html,body{overflow:visible;background:#fff;color:#000;height:auto}
+  canvas#c,#panel,#ptoggle,#top,#bar,#drawer,#hint,#badge,#modal,#err{display:none!important}
+  #printArea{display:block;padding:10px 6px;font:11px/1.4 Georgia,serif;color:#000}
+  #printArea h1{font-size:20px} #printArea h2{font-size:14px;margin-top:14px;border-bottom:1px solid #999}
+  #printArea th,#printArea td{border-bottom:1px solid #ccc;padding:2px 5px;color:#000;background:none;position:static}
+  #printArea tr.cat td{color:#000;font-weight:bold} #printArea img{max-width:100%;border:1px solid #999;margin:8px 0}
+  #printArea .disc{border:1px solid #999;padding:6px;background:none;color:#000}
+}
+</style>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+</head>
+<body>
+<canvas id="c" tabindex="0"></canvas>
+
+<aside id="panel">
+  <div id="phead">
+    <h1>Hope Lutheran · Sanctuary Studio</h1>
+    <p>Walk the room, try redesign options, watch the rough cost. Sunbury, Ohio.</p>
+  </div>
+  <div id="tabs">
+    <button data-tab="opts" class="on">Options</button>
+    <button data-tab="schemes">Schemes</button>
+    <button data-tab="dims">Dimensions</button>
+    <button data-tab="prices">Prices</button>
+  </div>
+  <div class="tab on" id="tab-opts"></div>
+  <div class="tab" id="tab-schemes"></div>
+  <div class="tab" id="tab-dims"></div>
+  <div class="tab" id="tab-prices"></div>
+</aside>
+<button id="ptoggle" title="Collapse / expand panel">☰</button>
+
+<div id="top">
+  <div class="seg" id="modes">
+    <button data-mode="walk" class="on" title="First-person walk (WASD + mouse)">Walk</button>
+    <button data-mode="orbit" title="Orbit / dollhouse view">Dollhouse</button>
+    <button data-mode="outside" title="Step outside">Outside</button>
+  </div>
+  <div class="seg" id="presets">
+    <button data-p="rear">Rear entrance</button>
+    <button data-p="font">Aisle at font</button>
+    <button data-p="pew">Pew seat</button>
+    <button data-p="chancel">Chancel</button>
+    <button data-p="pulpit">Pulpit</button>
+  </div>
+  <button id="ba" title="Toggle the current as-is sanctuary (key: B)">Show as-is (before)</button>
+</div>
+<div id="badge">BEFORE — existing sanctuary</div>
+<div id="hint"></div>
+
+<div id="drawer"></div>
+<div id="bar">
+  <div class="kv"><small>Estimated total (low – high)</small><span class="big num" id="b-total">$0</span></div>
+  <div class="kv"><small>Per seat</small><span class="num" id="b-seat">–</span></div>
+  <div class="kv"><small>Seats</small><span class="num" id="b-seats">–</span></div>
+  <div class="kv"><small>Acoustics (est.)</small><span id="b-ac">–</span></div>
+  <div class="kv"><small>Contingency %</small><input type="number" id="i-cont" min="0" max="50" step="1"></div>
+  <div class="kv"><small>Design / permits %</small><input type="number" id="i-design" min="0" max="30" step="1"></div>
+  <div class="sp"></div>
+  <span class="note" style="max-width:230px;line-height:1.2">Rough 2026 Central Ohio ballparks — not quotes.</span>
+  <button id="b-items">Itemized ▴</button>
+  <button id="b-print">Print summary</button>
+</div>
+
+<div id="modal"><div class="box" id="modalbox"></div></div>
+<div id="err"></div>
+<div id="printArea"></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+window.addEventListener('error', e => { const el=document.getElementById('err'); el.style.display='block'; el.textContent += (e.message||e)+'\n'; });
+
+/* ======================================================================
+   1. DIMENSIONS — all in feet. Estimates from photos; edit in the
+      "Dimensions" tab (or here) with tape-measured values.
+   ====================================================================== */
+const DIM_META = [
+  // key, label, default, min, max, step
+  ['W','Room width (wall to wall)',50,24,90,0.5],
+  ['D','Room depth (chancel wall to rear wall)',70,30,140,0.5],
+  ['wallH','Side-wall height',10,7,20,0.25],
+  ['ridgeH','Ceiling height at ridge',19.5,9,40,0.25],
+  ['platW','Chancel platform width',30,10,80,0.5],
+  ['platD','Chancel platform depth',12,5,30,0.5],
+  ['platH','Chancel platform height (6" per step)',1,0.5,3,0.5],
+  ['glassW','Stained-glass group width (4 panels + posts)',19.5,8,40,0.5],
+  ['glassSill','Stained-glass sill height above floor',11.5,6,25,0.25],
+  ['aisleW','Center aisle width',6.5,3,16,0.5],
+  ['rows','Seating rows per side',12,1,40,1],
+  ['perRow','Chairs per row (each side)',8,1,20,1],
+  ['rowSpacing','Row spacing, back to back',3.2,2.5,5,0.1],
+  ['chairW','Seat width (chair or pew space)',1.67,1.4,2.2,0.01],
+  ['frontClear','Clear floor: chancel step to first row',8,3,25,0.5],
+  ['rearClear','Clear floor: last row to rear wall',10,3,40,0.5],
+  ['sideWinCount','Right-wall glass door/window units',2,0,6,1],
+  ['sideWinW','Width of each glass unit',8,3,16,0.5],
+  ['sideWinH','Height of each glass unit',7,3,10,0.25],
+  ['narthexD','Narthex / entry zone depth (if added)',10,6,20,0.5],
+  ['bay','Bay spacing (trusses, pilasters, pendants)',11.5,6,20,0.5],
+];
+const DIM = {}; DIM_META.forEach(m => DIM[m[0]] = m[2]);
+
+/* ======================================================================
+   2. COST DATA  —  *** EDIT PRICES HERE ***  (or in the "Prices" tab)
+      Rough installed 2026 Central Ohio ballparks, NOT quotes.
+      Each entry: label, unit, lo, hi (installed $ per unit).
+      Assumptions changed from the starting anchors are marked (adj).
+   ====================================================================== */
+const COST = {
+  // --- Flooring (per sq ft installed)
+  demoCarpet:  {label:'Carpet removal & disposal', unit:'sf', lo:0.75, hi:1.5},
+  subPrep:     {label:'Subfloor prep / leveling for hard flooring', unit:'sf', lo:1.5, hi:4},
+  carpet:      {label:'New commercial carpet', unit:'sf', lo:4, hi:9},
+  lvp:         {label:'Luxury vinyl plank', unit:'sf', lo:5, hi:10},
+  oak:         {label:'Oak hardwood, finished', unit:'sf', lo:10, hi:20},
+  porcelain:   {label:'Porcelain tile, stone look', unit:'sf', lo:12, hi:25},
+  stone:       {label:'Natural slate / limestone', unit:'sf', lo:25, hi:50},
+  checker:     {label:'Marble / porcelain checkerboard', unit:'sf', lo:18, hi:40},   // (adj) between porcelain and stone
+  terrazzo:    {label:'Terrazzo', unit:'sf', lo:30, hi:60},
+  runner:      {label:'Tile aisle runner with border', unit:'sf', lo:16, hi:32},      // (adj) porcelain + border labor
+  // --- Chancel & altar
+  platform:    {label:'Raise / extend chancel platform (framing, steps)', unit:'sf', lo:45, hi:110},
+  railOak:     {label:'Oak communion rail', unit:'lf', lo:300, hi:700},
+  railIron:    {label:'Wrought-iron communion rail, oak cap', unit:'lf', lo:400, hi:900},
+  railCushion: {label:'Kneeling cushion at rail', unit:'lf', lo:40, hi:90},
+  altarMove:   {label:'Move altar to east wall + footpace (predella)', unit:'ls', lo:1500, hi:5000},
+  dossal:      {label:'Dossal curtain with rod & riddel posts', unit:'ea', lo:3000, hi:9000},
+  tester:      {label:'Tester / baldachin canopy', unit:'ea', lo:6000, hi:20000},
+  reredos:     {label:'Carved wood reredos', unit:'ea', lo:18000, hi:60000},
+  altarOak:    {label:'New paneled oak altar', unit:'ea', lo:6000, hi:20000},
+  altarStone:  {label:'Stone (limestone) altar', unit:'ea', lo:15000, hi:45000},
+  crucifix:    {label:'Carved crucifix (corpus on cross)', unit:'ea', lo:2500, hi:12000},
+  candles6:    {label:'Six altar candlesticks + gradine', unit:'set', lo:1800, hi:7000},
+  frontal:     {label:'Full altar frontal (per color)', unit:'ea', lo:1500, hi:5000},
+  pulpit:      {label:'Elevated pulpit with sounding board', unit:'ea', lo:12000, hi:40000},
+  lectern:     {label:'Oak lectern', unit:'ea', lo:2000, hi:7000},
+  credence:    {label:'Credence table', unit:'ea', lo:800, hi:3000},
+  sedilia:     {label:'Sedilia (clergy bench, 3 seats)', unit:'ea', lo:3000, hi:10000},
+  flagsMove:   {label:'Relocate / remove flags', unit:'ls', lo:0, hi:300},
+  // --- Walls
+  paint:       {label:'Repaint walls (prep + 2 coats)', unit:'sf', lo:1.75, hi:3.5},
+  paintDeep:   {label:'Deep-color paint (primer + 2–3 coats)', unit:'sf', lo:2.25, hi:4.5},
+  diaper:      {label:'Gilt diaper-pattern stencil on wall', unit:'sf', lo:8, hi:20},
+  giltBand:    {label:'Gilt accent band', unit:'lf', lo:12, hi:35},
+  stencil:     {label:'Stenciled border', unit:'lf', lo:18, hi:45},
+  wains4:      {label:'Oak wainscot paneling to 4 ft', unit:'lf', lo:40, hi:90},
+  wains7:      {label:'Oak paneling to 7 ft', unit:'lf', lo:90, hi:190},               // (adj) taller = ~2x
+  stoneVeneer: {label:'Stone veneer', unit:'sf', lo:25, hi:55},
+  limePanel:   {label:'Limestone-look wall panels', unit:'sf', lo:18, hi:40},
+  station:     {label:'Station of the Cross plaque', unit:'ea', lo:250, hi:1200},
+  icon:        {label:'Framed icon', unit:'ea', lo:600, hi:3000},
+  mural:       {label:'Painted mural (chancel wall)', unit:'sf', lo:60, hi:180},
+  hymnBoard:   {label:'New oak hymn board', unit:'ea', lo:700, hi:2200},
+  consCross:   {label:'Consecration cross (gilt, wall-mounted)', unit:'ea', lo:90, hi:300},
+  // --- Ceiling
+  popcorn:     {label:'Remove texture, skim & paint ceiling', unit:'sf', lo:3, hi:6},
+  tg:          {label:'Tongue-and-groove wood ceiling', unit:'sf', lo:15, hi:30},
+  coffer:      {label:'Coffered ceiling panels', unit:'sf', lo:22, hi:45},
+  truss:       {label:'Decorative faux timber truss members', unit:'lf', lo:150, hi:400},
+  heavens:     {label:'"Heavens" ceiling: deep blue + gold stars', unit:'sf', lo:12, hi:30},
+  trackRemove: {label:'Remove track/spot fixture, patch', unit:'ea', lo:75, hi:200},
+  // --- Lighting
+  pendant:     {label:'Gothic lantern pendant, installed', unit:'ea', lo:800, hi:2800},
+  chandelier:  {label:'Iron ring chandelier, installed', unit:'ea', lo:1800, hi:4000},
+  coveLED:     {label:'Cove retrofit: warm dimmable LED', unit:'lf', lo:25, hi:60},
+  coveRemove:  {label:'Remove cove lighting (beam stays)', unit:'lf', lo:8, hi:20},
+  dimming:     {label:'Dimming / scene control system', unit:'ls', lo:6000, hi:18000},
+  accent:      {label:'Accent spot on altar / cross', unit:'ea', lo:450, hi:1200},
+  lamp:        {label:'New brass sanctuary lamp', unit:'ea', lo:600, hi:3500},
+  // --- Stained glass
+  glassRestore:{label:'Restore / re-lead stained glass', unit:'sf', lo:50, hi:150},
+  glassNew:    {label:'New custom figural stained glass', unit:'sf', lo:150, hi:400},
+  roseFrame:   {label:'Rose window: opening, framing, exterior', unit:'ls', lo:8000, hi:25000},
+  // --- Projection
+  screenMotor: {label:'Motorized recessed screen + soffit', unit:'ea', lo:3000, hi:10000},
+  screenSingle:{label:'Single smaller screen', unit:'ea', lo:1500, hi:5000},
+  screenRemove:{label:'Remove screen / projector, patch', unit:'ea', lo:150, hi:500},
+  flatPanel:   {label:'Flat panel display on side wall', unit:'ea', lo:1800, hi:4500},
+  // --- Seating
+  chairUph:    {label:'Upholstered stacking chair', unit:'ea', lo:70, hi:160},
+  chairWood:   {label:'Wood chapel chair', unit:'ea', lo:150, hi:400},
+  chairKneel:  {label:'Kneeler attached to chapel chair', unit:'ea', lo:40, hi:90},
+  pewNew:      {label:'New solid oak pew with hymnal rack', unit:'lf', lo:150, hi:350},
+  pewKneel:    {label:'Pew kneeler', unit:'lf', lo:40, hi:80},
+  pewUsed:     {label:'Used / refurbished pew', unit:'lf', lo:50, hi:150},
+  // --- Font & furnishings
+  fontMove:    {label:'Relocate font', unit:'ls', lo:150, hi:600},
+  fontOak:     {label:'Larger octagonal oak font with cover', unit:'ea', lo:4000, hi:12000},
+  fontStone:   {label:'Stone font', unit:'ea', lo:8000, hi:30000},
+  procCross:   {label:'Processional cross + two torches', unit:'set', lo:2500, hi:9000},
+  paschal:     {label:'Paschal candle stand', unit:'ea', lo:900, hi:4000},
+  rood:        {label:'Rood beam with crucifix', unit:'ls', lo:9000, hi:35000},
+  // --- Doors, windows, details
+  doorOak:     {label:'Paneled oak door, installed', unit:'ea', lo:2500, hi:7000},
+  archFrame:   {label:'Arched door frame / tympanum', unit:'ea', lo:1200, hi:3500},
+  lancetTrim:  {label:'Lancet-arch trim at opening', unit:'ea', lo:900, hi:3000},
+  pilaster:    {label:'Engaged wood pilaster', unit:'ea', lo:900, hi:2800},
+  column:      {label:'Wood column + arcade plate', unit:'ea', lo:2500, hi:7000},
+  chancelArch: {label:'Arched chancel opening (framed, plastered)', unit:'ls', lo:12000, hi:40000},
+  proscenium:  {label:'Timber proscenium frame at chancel', unit:'ls', lo:8000, hi:28000},
+  crown:       {label:'Crown molding', unit:'lf', lo:12, hi:30},
+  base:        {label:'Base molding', unit:'lf', lo:8, hi:18},
+  // --- Music & acoustics
+  organDigital:{label:'Digital organ + decorative pipe façade', unit:'ls', lo:40000, hi:150000},
+  organPipe:   {label:'Pipe organ (new; less if relocated/used)', unit:'ls', lo:300000, hi:1000000},
+  choirMove:   {label:'Relocate instrument (power, data, floor)', unit:'ls', lo:1500, hi:6000},
+  choirStalls: {label:'Choir stalls / benches', unit:'lf', lo:250, hi:600},
+  loft:        {label:'Rear choir/organ loft (STRUCTURAL)', unit:'ls', lo:60000, hi:180000},
+  spkPaint:    {label:'Paint speakers to match', unit:'ea', lo:150, hi:400},
+  spkColumn:   {label:'Column line-array speaker', unit:'ea', lo:3500, hi:9000},
+  // --- Devotional
+  votive:      {label:'Votive candle stand', unit:'ea', lo:900, hi:3500},
+  prayerCorner:{label:'Prayer corner: icon, prie-dieu, lamp', unit:'ls', lo:1500, hi:6000},
+  textiles:    {label:'Embroidered dossal/banner + frontal set (per color)', unit:'color', lo:2000, hi:10000},
+  confession:  {label:'Confession kneeler (prie-dieu) + chair', unit:'set', lo:1200, hi:4500},
+  bell:        {label:'Sanctus / sacristy bell', unit:'ea', lo:250, hi:1500},
+  aumbry:      {label:'Aumbry (wall niche, door, lamp)', unit:'ea', lo:2500, hi:9000},
+  // --- Entrance & narthex
+  narthexScreen:{label:'Narthex screen: oak + glass', unit:'lf', lo:200, hi:900},       // $10k–45k at 50 ft
+  halfWall:    {label:'Narthex half wall, oak cap', unit:'lf', lo:90, hi:250},          // (adj) cheaper than full screen
+  stoup:       {label:'Baptismal remembrance bowl (stoup) at door', unit:'ea', lo:400, hi:2500},
+  welcome:     {label:'Welcome desk + bulletin rack in narthex', unit:'ls', lo:500, hi:3000},
+  // --- Layout
+  relayout:    {label:'Re-set seating layout (labor)', unit:'ls', lo:0, hi:600},
+  // --- Mechanical / cleanup
+  fanRemove:   {label:'Remove ceiling fan, patch', unit:'ea', lo:150, hi:400},
+  destrat:     {label:'Hidden HVAC destratification', unit:'ls', lo:4000, hi:14000},
+  projConceal: {label:'Conceal / relocate projector', unit:'ea', lo:800, hi:2500},
+  exitSign:    {label:'Low-profile edge-lit exit sign', unit:'ea', lo:250, hi:700},
+  cabling:     {label:'Conceal cabling (in-wall, raceway removal)', unit:'ls', lo:1500, hi:6000},
+};
+/* ============================ end cost data ============================ */
+
+const SET = { cont:15, design:10 };   // contingency %, design/permits %
+
+/* ======================================================================
+   3. OPTION CATALOG — every group: first option = "keep as-is ($0)".
+      cost(v, g, s) returns [[COST key, quantity, optional note], ...]
+      where g = geometry/quantities computed from DIM and the selections.
+   ====================================================================== */
+const YN = [['no','No (as-is)'],['yes','Yes']];
+const FLOORS = {
+  seatAsis:   {tex:'carpet:#7b756c', ft:4, col:'#7b756c', ab:.35, r:1},
+  chancelAsis:{tex:'carpet:#705a6c', ft:4, col:'#705a6c', ab:.35, r:1},
+  carpet:     {key:'carpet',   name:'New carpet (deep wine red)', tex:'carpet:#5a1d22', ft:4, col:'#5a1d22', ab:.35, r:1},
+  lvp:        {key:'lvp',      name:'Luxury vinyl plank', tex:'planks:#8a765f:5', ft:6, col:'#7a6853', ab:.04, r:.6, hard:1},
+  oak:        {key:'oak',      name:'Oak hardwood', tex:'planks:#a97b47:8', ft:5, col:'#8f6638', ab:.07, r:.45, hard:1},
+  porcelain:  {key:'porcelain',name:'Porcelain tile, stone look', tex:'tiles:#b9ad98:#8d8372:2', ft:4, col:'#a59984', ab:.02, r:.4, hard:1},
+  slate:      {key:'stone',    name:'Natural slate', tex:'tiles:#4d5556:#2c3030:3:1', ft:4.5, col:'#3f4647', ab:.02, r:.55, hard:1},
+  limestone:  {key:'stone',    name:'Natural limestone', tex:'tiles:#d4c8ad:#a79c84:2', ft:5, col:'#c0b497', ab:.02, r:.5, hard:1},
+  checker:    {key:'checker',  name:'Marble / porcelain checkerboard', tex:'checker', ft:4, col:'#555', ab:.02, r:.5, hard:1},
+  terrazzo:   {key:'terrazzo', name:'Terrazzo', tex:'terrazzo', ft:5, col:'#b8ae9d', ab:.02, r:.5, hard:1},
+  runner:     {key:'runner',   name:'Contrasting tile runner (carpet stays under seating)', tex:'runner', ft:0, col:'#8d8372', ab:.02, r:.4, hard:1},
+};
+const fo = ids => ids.map(i => [i, FLOORS[i].name]);
+function floorCost(v, area){
+  if(v==='asis' || v==='same' || !FLOORS[v]) return [];
+  const f = FLOORS[v], L = [[f.key, area], ['demoCarpet', area]];
+  if(f.hard) L.push(['subPrep', area]);
+  return L;
+}
+const aisleType = s => s.floorAisle==='same' ? s.floorSeat : s.floorAisle;
+const SEASONS = { green:['#1f6b3a','Green — Ordinary Time'], white:['#efe7d0','White — Christmas, Easter'], violet:['#4a2a6e','Violet — Lent'],
+                  blue:['#1d3f8c','Blue — Advent'], red:['#a01c22','Red — Pentecost, Reformation'], black:['#161616','Black — Good Friday'] };
+const PAINTS = { asis:'#efe6cc', white:'#e9e2d0', oxblood:'#6a1f1f', marian:'#23448f', sage:'#8a9a7b' };
+
+const CATS = [
+{id:'floor', name:'Flooring', groups:[
+  {id:'floorSeat', label:'Seating area', opts:[['asis','Keep as-is — gray/taupe carpet ($0)'], ...fo(['carpet','lvp','oak','porcelain','slate','limestone','terrazzo'])],
+    cost:(v,g)=>floorCost(v,g.aSeat)},
+  {id:'floorAisle', label:'Center aisle', opts:[['same','Same as seating area'], ...fo(['carpet','lvp','oak','porcelain','slate','limestone','checker','terrazzo','runner'])],
+    cost:(v,g,s)=>floorCost(aisleType(s),g.aAisle)},
+  {id:'floorChancel', label:'Chancel platform & steps', opts:[['asis','Keep as-is — mauve carpet ($0)'], ...fo(['carpet','lvp','oak','porcelain','slate','limestone','checker','terrazzo'])],
+    cost:(v,g)=>floorCost(v,g.aChancel)},
+]},
+{id:'chancel', name:'Chancel & altar', groups:[
+  {id:'platform', label:'Platform', opts:[['asis','Keep as-is — two steps ($0)'],['raised','Raise to three steps and extend']],
+    cost:(v,g)=>v==='raised'?[['platform',g.aChancel]]:[], flag:v=>v==='raised'?'Needs structural/code review (step geometry, accessibility ramp).':''},
+  {id:'rail', label:'Communion rail', opts:[['none','None (as-is)'],['oak','Oak rail with kneeling cushion'],['iron','Wrought-iron rail with kneeling cushion']],
+    cost:(v,g)=>v==='none'?[]:[[v==='oak'?'railOak':'railIron',g.railLF],['railCushion',g.railLF]]},
+  {id:'altarPos', label:'Altar position', opts:[['asis','Freestanding (as-is)'],['east','Against the east wall, on a footpace']],
+    cost:v=>v==='east'?[['altarMove',1]]:[]},
+  {id:'altarBack', label:'Behind the altar', opts:[['none','Plain wall (as-is)'],['dossal','Dossal curtain'],['tester','Dossal curtain with tester / baldachin'],['reredos','Carved wood reredos']],
+    cost:v=>({dossal:[['dossal',1]],tester:[['dossal',1],['tester',1]],reredos:[['reredos',1]]})[v]||[]},
+  {id:'altarType', label:'Altar', opts:[['asis','Keep pine altar table ($0)'],['oak','New paneled oak altar'],['stone','Stone altar']],
+    cost:v=>v==='oak'?[['altarOak',1]]:v==='stone'?[['altarStone',1]]:[], flag:v=>v==='stone'?'Check floor loading for stone.':''},
+  {id:'cross', label:'Cross', opts:[['asis','Plain Latin cross (as-is)'],['crucifix','Crucifix']], cost:v=>v==='crucifix'?[['crucifix',1]]:[]},
+  {id:'candles', label:'Altar candles', opts:[['two','Two candlesticks (as-is)'],['six','Six candlesticks on a gradine']], cost:v=>v==='six'?[['candles6',1]]:[]},
+  {id:'frontal', label:'Altar vesture', opts:[['asis','Center parament (as-is)'],['full','Full altar frontal']], cost:v=>v==='full'?[['frontal',1]]:[]},
+  {id:'pulpit', label:'Pulpit', opts:[['asis','Keep pine pulpit/ambo ($0)'],['elevated','Elevated pulpit with sounding board']], cost:v=>v==='elevated'?[['pulpit',1]]:[]},
+  {id:'lectern', label:'Separate lectern', opts:YN, cost:v=>v==='yes'?[['lectern',1]]:[]},
+  {id:'credence', label:'Credence table', opts:YN, cost:v=>v==='yes'?[['credence',1]]:[]},
+  {id:'sedilia', label:'Sedilia in place of presider chair', opts:YN, cost:v=>v==='yes'?[['sedilia',1]]:[]},
+  {id:'flags', label:'Flags', opts:[['asis','In the chancel (as-is)'],['rear','Relocate to the rear / narthex'],['remove','Remove from the worship space']], cost:v=>v==='asis'?[]:[['flagsMove',1]]},
+]},
+{id:'walls', name:'Walls', groups:[
+  {id:'wallPaint', label:'Paint palette (side & rear walls)', opts:[['asis','Keep cream / ivory ($0)'],['white','Warm limestone white'],['oxblood','Oxblood'],['marian','Marian blue'],['sage','Sage']],
+    cost:(v,g,s)=>v==='asis'?[]:[[v==='white'?'paint':'paintDeep', g.paintSF]]},
+  {id:'chancelPaint', label:'Chancel wall color', opts:[['same','Same as other walls'],['oxblood','Oxblood'],['marian','Marian blue'],['sage','Sage'],['diaper','Oxblood with gilt diaper pattern']],
+    cost:(v,g)=>v==='same'||!g.chPaintSF?[]:v==='diaper'?[['paintDeep',g.chPaintSF],['diaper',g.chPaintSF*0.5,'lower wall, below the glass']]:[['paintDeep',g.chPaintSF]]},
+  {id:'stencil', label:'Gilt accents / stenciled border', opts:[['none','None (as-is)'],['gilt','Gilt accent band'],['stencil','Stenciled border with gilt']],
+    cost:(v,g)=>v==='none'?[]:[[v==='gilt'?'giltBand':'stencil', g.perim]]},
+  {id:'wainscot', label:'Oak wainscoting / paneling', opts:[['none','None (as-is)'],['4','Oak wainscot to 4 ft'],['7','Oak paneling to 7 ft']],
+    cost:(v,g)=>v==='none'?[]:[[v==='4'?'wains4':'wains7', g.wainsLF]]},
+  {id:'clad', label:'Stone / limestone', opts:[['none','None (as-is)'],['stoneCh','Stone veneer — chancel wall only'],['stoneAll','Stone veneer — all walls'],['limeCh','Limestone-look panels — chancel wall only'],['limeAll','Limestone-look panels — all walls']],
+    cost:(v,g)=>v==='none'?[]:[[v.startsWith('stone')?'stoneVeneer':'limePanel', v.endsWith('All')?g.wallChancel+g.wallSide+g.wallRear:g.wallChancel]],
+    flag:v=>v.startsWith('stone')?'Stone weight: structural review of wall framing/footings required.':''},
+  {id:'stations', label:'14 Stations of the Cross plaques', opts:YN, cost:v=>v==='yes'?[['station',14]]:[]},
+  {id:'chancelArt', label:'Chancel wall art', opts:[['none','None (as-is)'],['icons','Framed icons (pair)'],['mural','Painted mural (replaces banners)']],
+    cost:(v,g)=>v==='icons'?[['icon',2]]:v==='mural'?[['mural',g.muralSF]]:[]},
+  {id:'hymnBoards', label:'Hymn boards', opts:[['asis','Keep existing boards ($0)'],['improved','Larger oak boards with gilt numerals']], cost:v=>v==='improved'?[['hymnBoard',2]]:[]},
+  {id:'consCross', label:'Twelve consecration crosses', opts:YN, cost:v=>v==='yes'?[['consCross',12]]:[]},
+]},
+{id:'ceiling', name:'Ceiling', groups:[
+  {id:'ceilFinish', label:'Finish', opts:[['asis','Keep textured white ($0)'],['smooth','Remove texture, skim and paint'],['tg','Tongue-and-groove wood'],['coffer','Coffered panels']],
+    cost:(v,g)=>v==='asis'?[]:v==='smooth'?[['popcorn',g.ceilSF]]:[['popcorn',g.ceilSF,'texture removal before new finish'],[v,g.ceilSF]],
+    flag:v=>v==='asis'?'':'Test the existing texture for asbestos before disturbing it.'},
+  {id:'trusses', label:'Decorative timber trusses', opts:[['none','None (as-is)'],['scissor','Faux scissor trusses'],['hammer','Faux hammer-beam trusses']],
+    cost:(v,g)=>v==='none'?[]:[['truss', g.trussLF(v), g.nTruss+' trusses']], flag:v=>v==='none'?'':'Even faux trusses add load: structural review required.'},
+  {id:'heavens', label:'Blue "heavens" with gold stars over the chancel', opts:YN, cost:(v,g)=>v==='yes'?[['heavens',g.heavensSF]]:[]},
+  {id:'tracks', label:'Track / spot fixtures', opts:[['keep','Keep (as-is)'],['remove','Remove and patch']], cost:(v,g)=>v==='remove'?[['trackRemove',g.trackPos.length]]:[]},
+  {ref:'fans'},
+]},
+{id:'lighting', name:'Lighting', groups:[
+  {id:'fixtures', label:'Decorative fixtures', opts:[['none','None — track spots only (as-is)'],['pendants','Gothic lantern pendants'],['chandeliers','Iron ring chandeliers']],
+    cost:(v,g)=>v==='pendants'?[['pendant',g.pendPos.length]]:v==='chandeliers'?[['chandelier',g.chandPos.length]]:[]},
+  {ref:'tracks'},
+  {id:'cove', label:'Cove uplighting', opts:[['keep','Keep (as-is)'],['warm','Retrofit warm, dimmable'],['remove','Remove']],
+    cost:(v,g)=>v==='warm'?[['coveLED',2*g.D]]:v==='remove'?[['coveRemove',2*g.D]]:[]},
+  {id:'scene', label:'Lighting scene', opts:[['asis','Flat and bright (as-is)'],['warm','Warm dimmed — Divine Service'],['vespers','Candlelight — Vespers / vigil']],
+    cost:v=>v==='asis'?[]:[['dimming',1]]},
+  {id:'accent', label:'Accent lighting on altar and cross', opts:YN, cost:v=>v==='yes'?[['accent',4]]:[]},
+  {id:'lamp', label:'Sanctuary lamp', opts:[['asis','Keep existing red lamp ($0)'],['replace','New hanging brass lamp']], cost:v=>v==='replace'?[['lamp',1]]:[]},
+]},
+{id:'glass', name:'Stained glass', groups:[
+  {id:'glass', label:'Chancel gable panels', opts:[['asis','Keep existing panels ($0)'],['restore','Restore / re-lead existing'],['passion','New Gothic: Nativity, Crucifixion, Christ the King, Resurrection'],['evangelists','New Gothic: the Four Evangelists'],['rose',"New Gothic: Word & Sacrament — Baptism, Luther's Rose, Agnus Dei, Chalice"]],
+    cost:(v,g)=>v==='asis'?[]:[[v==='restore'?'glassRestore':'glassNew', g.glassSF]]},
+  {id:'sideGlass', label:'Stained glass in side-wall windows', opts:YN, cost:(v,g)=>v==='yes'?[['glassNew',g.sideGlassSF,'side-wall units']]:[]},
+  {id:'roseWin', label:'Rose window in the rear gable', opts:YN, cost:(v,g)=>v==='yes'?[['glassNew',g.roseSF,'rose window glass'],['roseFrame',1]]:[],
+    flag:v=>v==='yes'?'New opening in a gable wall: structural review required.':''},
+]},
+{id:'projection', name:'Projection', groups:[
+  {id:'screens', label:'Screens', opts:[['both','Keep both screens (as-is)'],['motor','Motorized screens, retract into a soffit'],['single','A single smaller screen'],['remove','Remove — bulletins, hymnals, hymn boards'],['flat','Discreet flat panels on side walls only']],
+    cost:v=>({motor:[['screenMotor',2]],single:[['screenSingle',1],['screenRemove',2]],remove:[['screenRemove',2]],flat:[['flatPanel',2],['screenRemove',2]]})[v]||[]},
+]},
+{id:'seating', name:'Seating', groups:[
+  {id:'seating', label:'Seating type', opts:[['asis','Keep navy stacking chairs ($0)'],['burgundy','New stacking chairs — burgundy'],['tan','New stacking chairs — tan'],['chapel','Wood chapel chairs with kneelers'],['pews','New solid oak pews with hymnal racks'],['pewsK','New solid oak pews with kneelers'],['used','Refurbished used pews']],
+    cost:(v,g)=>v==='asis'?(g.seats>g.baseSeats?[['chairUph',g.seats-g.baseSeats,'extra matching chairs']]:[]):
+      v==='burgundy'||v==='tan'?[['chairUph',g.seats]]:v==='chapel'?[['chairWood',g.seats],['chairKneel',g.seats]]:
+      v==='pews'?[['pewNew',g.pewLF]]:v==='pewsK'?[['pewNew',g.pewLF],['pewKneel',g.pewLF]]:[['pewUsed',g.pewLF]]},
+]},
+{id:'font', name:'Font & furnishings', groups:[
+  {id:'fontPos', label:'Font location', opts:[['asis','Center aisle toward the rear (as-is)'],['entrance','At the entrance']], cost:v=>v==='entrance'?[['fontMove',1]]:[]},
+  {id:'fontType', label:'Font', opts:[['asis','Keep octagonal oak font ($0)'],['oak','Larger octagonal oak font with cover'],['stone','Stone font']], cost:v=>v==='oak'?[['fontOak',1]]:v==='stone'?[['fontStone',1]]:[]},
+  {id:'procCross', label:'Processional cross and torches', opts:YN, cost:v=>v==='yes'?[['procCross',1]]:[]},
+  {id:'paschal', label:'Paschal candle stand', opts:YN, cost:v=>v==='yes'?[['paschal',1]]:[]},
+  {id:'rood', label:'Rood beam with crucifix over the chancel step', opts:YN, cost:v=>v==='yes'?[['rood',1]]:[], flag:v=>v==='yes'?'Beam span and posts need structural review.':''},
+]},
+{id:'doors', name:'Doors, windows & details', groups:[
+  {id:'sacDoors', label:'Sacristy / side doors', opts:[['asis','Keep flush doors ($0)'],['gothic','Paneled oak, Gothic-arch frames'],['round','Paneled oak, round-arch frames']],
+    cost:v=>v==='asis'?[]:[['doorOak',3],['archFrame',3]]},
+  {id:'openings', label:'Side-wall window & door openings', opts:[['asis','Keep square trim (as-is)'],['lancet','Lancet-arch trim']], cost:(v,g)=>v==='lancet'?[['lancetTrim',g.nOpen]]:[]},
+  {id:'pilasters', label:'Side-wall bays', opts:[['none','Plain walls (as-is)'],['pilasters','Engaged pilasters'],['columns','Wood columns forming side aisles']],
+    cost:(v,g)=>v==='pilasters'?[['pilaster',g.nPil]]:v==='columns'?[['column',g.nPil]]:[], flag:v=>v==='columns'?'Columns narrow the seating; seat count is updated.':''},
+  {id:'chancelArch', label:'Chancel opening', opts:[['none','Open (as-is)'],['arch','Pointed chancel arch'],['proscenium','Timber proscenium frame']],
+    cost:v=>v==='arch'?[['chancelArch',1]]:v==='proscenium'?[['proscenium',1]]:[], flag:v=>v==='none'?'':'Framing hung from the roof structure: structural review required.'},
+  {id:'moldings', label:'Crown and base moldings', opts:YN, cost:(v,g)=>v==='yes'?[['crown',g.perim],['base',g.perim]]:[]},
+]},
+{id:'music', name:'Music & acoustics', groups:[
+  {id:'organ', label:'Instrument', opts:[['asis','Keep piano/organ under cover ($0)'],['digital','Digital organ with decorative pipe façade'],['pipe','Real pipe organ (high cost)']],
+    cost:v=>v==='digital'?[['organDigital',1]]:v==='pipe'?[['organPipe',1]]:[], flag:v=>v==='pipe'?'Pipe organs need floor loading, wind and climate review.':''},
+  {id:'choir', label:'Organ / choir location', opts:[['asis','Front left (as-is), no choir area'],['chancel','Choir area beside the chancel'],['rear','Choir area at the rear']],
+    cost:(v,g)=>v==='asis'?[]:[['choirMove',1],['choirStalls',g.choirLF]]},
+  {id:'loft', label:'Small rear choir / organ loft', opts:YN, cost:v=>v==='yes'?[['loft',1]]:[], flag:v=>v==='yes'?'STRUCTURAL WORK: new framing, footings, stair, guardrail, egress. Engineer + permit required. Headroom is tight under this roof.':''},
+  {id:'speakers', label:'Box speakers', opts:[['asis','Keep white boxes (as-is)'],['paint','Paint to match'],['column','Replace with column line arrays']],
+    cost:v=>v==='paint'?[['spkPaint',2]]:v==='column'?[['spkColumn',2]]:[]},
+]},
+{id:'devotional', name:'Devotional & liturgical', groups:[
+  {id:'season', label:'Church year (paraments & banners)', opts:Object.entries(SEASONS).map(([k,v])=>[k,v[1]]), cost:()=>[]},
+  {id:'textiles', label:'Banners / textiles', opts:[['asis','Seasonal vinyl banners (as-is)'],['embroidered','Permanent embroidered hangings and frontals'],['none','No banners']],
+    cost:v=>v==='embroidered'?[['textiles',4,'white, green, violet, red']]:[]},
+  {id:'votive', label:'Votive / prayer candle stand (less common in Lutheran use)', opts:YN, cost:v=>v==='yes'?[['votive',1]]:[]},
+  {id:'prayerCorner', label:'Memorial / prayer corner with icon', opts:YN, cost:v=>v==='yes'?[['prayerCorner',1]]:[]},
+  {id:'confession', label:'Kneeler & chair for private Confession and Absolution', opts:YN, cost:v=>v==='yes'?[['confession',1]]:[]},
+  {id:'bell', label:'Sanctus bell', opts:YN, cost:v=>v==='yes'?[['bell',1]]:[]},
+  {id:'aumbry', label:'Aumbry (wall niche for sacred vessels)', opts:YN, cost:v=>v==='yes'?[['aumbry',1]]:[]},
+]},
+{id:'narthex', name:'Entrance & narthex', groups:[
+  {id:'narthex', label:'Defined narthex at the rear', opts:[['none','None (as-is)'],['screen','Wood screen with glass'],['half','Half wall']],
+    cost:(v,g)=>v==='screen'?[['narthexScreen',g.W]]:v==='half'?[['halfWall',g.W-8]]:[], flag:(v,g)=>v!=='none'&&g?'Narthex takes '+DIM.narthexD+' ft of depth; seat count is updated.':''},
+  {id:'entryFloor', label:'Entry floor', opts:[['asis','Carpet (as-is)'], ...fo(['porcelain','slate','limestone'])], cost:(v,g)=>floorCost(v,g.aEntry)},
+  {id:'stoup', label:'Baptismal remembrance bowl at the door', opts:YN, cost:v=>v==='yes'?[['stoup',1]]:[]},
+  {id:'welcome', label:'Welcome table & bulletin rack', opts:[['asis','In the worship space (as-is)'],['moved','Moved out to the narthex']], cost:v=>v==='moved'?[['welcome',1]]:[]},
+]},
+{id:'layout', name:'Layout', groups:[
+  {id:'arrange', label:'Arrangement', opts:[['forward','Rows facing the chancel (as-is)'],['antiphonal','Choir-style (antiphonal), facing the aisle']],
+    cost:(v,g,s)=>g.layoutChanged?[['relayout',1]]:[]},
+  {id:'aisleW', label:'Center aisle width (ft)', num:[3,16,0.5], cost:()=>[]},
+  {id:'sideAisles', label:'Side aisles along the walls (4 ft clear)', opts:YN, cost:()=>[], flag:(v,g)=>v==='yes'&&g&&g.rowsList.length&&g.rowsList[0].n>=lay(S,'perRow')&&S.arrange==='forward'?'This layout already leaves at least 4 ft at the walls, so nothing moves.':''},
+  {id:'rows', label:'Rows per side', num:[1,40,1], cost:()=>[]},
+  {id:'perRow', label:'Seats per row, each side', num:[1,20,1], cost:()=>[]},
+  {id:'rowSpacing', label:'Row spacing (ft)', num:[2.5,5,0.1], cost:()=>[]},
+]},
+{id:'mech', name:'Mechanical & cleanup', groups:[
+  {id:'fans', label:'Ceiling fans', opts:[['keep','Keep (as-is)'],['remove','Remove'],['destrat','Remove; hidden HVAC destratification']],
+    cost:(v,g)=>v==='keep'?[]:v==='remove'?[['fanRemove',g.fanZ.length]]:[['fanRemove',g.fanZ.length],['destrat',1]]},
+  {id:'projectors', label:'Projectors', opts:[['asis','On drop poles (as-is)'],['conceal','Conceal in ceiling enclosures']],
+    cost:(v,g,s)=>v==='conceal'&&g.nProj?[['projConceal',g.nProj]]:[]},
+  {id:'exitSign', label:'Exit signage', opts:[['asis','Standard lit box signs (as-is)'],['low','Low-profile edge-lit']], cost:v=>v==='low'?[['exitSign',2]]:[]},
+  {id:'cabling', label:'Cabling', opts:[['asis','Surface raceways (as-is)'],['conceal','Concealed']], cost:v=>v==='conceal'?[['cabling',1]]:[]},
+]},
+];
+const SRC = {
+  glass:'Lutheran sources to ask: Kelly Schumacher (Agnus Dei Liturgical Arts).', sideGlass:'Lutheran sources to ask: Kelly Schumacher (Agnus Dei Liturgical Arts).', roseWin:'Lutheran sources to ask: Kelly Schumacher (Agnus Dei Liturgical Arts).',
+  chancelArt:'Lutheran sources to ask: Edward Riojas (painted altarpieces, murals); Kelly Schumacher; Ad Crucem.', altarBack:'Sources to ask: Edward Riojas (painted reredos / altarpiece panels); Ecclesiastical Sewing (dossals).',
+  textiles:'Sources to ask: Ecclesiastical Sewing; Ad Crucem.', frontal:'Sources to ask: Ecclesiastical Sewing; Ad Crucem.', stations:'Sources to ask: Edward Riojas; Ad Crucem.', cross:'Sources to ask: Ad Crucem; Kelly Schumacher (carved or painted corpus).',
+};
+const GROUPS = {}; CATS.forEach(c => c.groups.forEach(g => { if(!g.ref) { GROUPS[g.id] = g; g.cat = c; } }));
+const LAYOUT_KEYS = ['aisleW','rows','perRow','rowSpacing'];
+function asisState(){ const s = {}; for(const id in GROUPS){ const g = GROUPS[id]; s[id] = g.num ? null : g.opts[0][0]; } return s; }
+const ASIS = Object.freeze(asisState());
+let S = asisState();
+const lay = (s,k) => s[k] ?? DIM[k];
+
+/* ======================================================================
+   4. GEOMETRY & QUANTITIES (pure function of DIM + a selection state)
+   ====================================================================== */
+function geo(s){
+  const d = DIM, W = d.W, D = d.D, wallH = d.wallH, ridgeH = Math.max(d.ridgeH, wallH+1), rise = ridgeH-wallH;
+  const g = {W, D, wallH, ridgeH, rise, warn:[]};
+  g.ceilY = x => wallH + (1-Math.min(1, Math.abs(x)/(W/2)))*rise;
+  g.slopeL = Math.hypot(W/2, rise);
+  // platform
+  const raised = s.platform==='raised';
+  g.pw = Math.min(W-6, d.platW + (raised?6:0)); g.pd = Math.min(D*0.4, d.platD + (raised?4:0));
+  g.nSteps = raised ? Math.max(3, Math.round(d.platH/0.5)+1) : Math.max(1, Math.round(d.platH/0.5));
+  g.ph = g.nSteps*0.5; g.stepsD = g.nSteps-1;
+  g.floorAt = (x,z) => { for(let i=0;i<g.nSteps;i++) if(Math.abs(x)<=g.pw/2+i && z<=g.pd+i) return g.ph-0.5*i; return 0; };
+  g.zStep = g.pd + g.stepsD;                         // front edge of lowest step
+  // glass group
+  const gw = Math.min(d.glassW, W-8), pt = 0.6, pc = 0.4; g.gw = gw; g.pt = pt;
+  g.sill = Math.min(d.glassSill, g.ceilY(gw/2)-1.5);
+  const top = x => Math.max(g.sill+1, g.ceilY(x)-0.55); g.glassTop = top;
+  g.panels = [[-gw/2+pt, -gw/4-pt/2],[-gw/4+pt/2, -pc/2],[pc/2, gw/4-pt/2],[gw/4+pt/2, gw/2-pt]].map(([x0,x1]) => ({x0,x1,t0:top(x0),t1:top(x1)}));
+  g.glassSF = g.panels.reduce((a,p) => a + (p.x1-p.x0)*((p.t0+p.t1)/2-g.sill), 0);
+  g.doorX = Math.min(W/2-3, (gw/2 + g.pw/2)/2 + 0.2);    // sacristy door centers (±)
+  g.outerPostX = Math.min(W/2-1, Math.max(g.doorX+2.3, d.platW/2-0.3));
+  // side-wall openings (z measured from the chancel wall)
+  g.openL = [{k:'door', z:D*0.14, w:3, h:6.8, y:0}, {k:'win', z:D*0.335, w:5, h:4.5, y:2.8}, {k:'door2', z:D-7, w:5, h:6.8, y:0}];
+  g.openR = [{k:'exit', z:D*0.17, w:3, h:6.8, y:0}];
+  const n = d.sideWinCount, z0 = D*0.4, z1 = D-12;
+  for(let i=0;i<n;i++) g.openR.push({k:'glass', z: n===1 ? z0 : z0 + (z1-z0)*i/(n-1), w:d.sideWinW, h:Math.min(d.sideWinH, wallH-1.6), y:0});
+  g.nOpen = g.openL.length + g.openR.length;
+  g.sideGlassSF = n*d.sideWinW*Math.min(d.sideWinH, wallH-1.6)*0.7;
+  // bays
+  g.bays = Math.max(2, Math.round(D/d.bay)); g.bayL = D/g.bays;
+  g.trussZ = []; for(let i=1;i<g.bays;i++) g.trussZ.push(i*g.bayL);
+  g.nTruss = g.trussZ.length; g.nPil = 2*g.nTruss;
+  g.truss = kind => {
+    const A=[-W/2,wallH-0.45], R=[0,ridgeH-0.45], m=[]; const mir = (p,q) => { m.push([p,q]); m.push([[-p[0],p[1]],[-q[0],q[1]]]); };
+    mir(A,R);
+    if(kind==='scissor'){ const t=0.55, P=[W/2*(1-t), A[1]+(R[1]-A[1])*t]; mir(A,P); const yc = A[1]+(P[1]-A[1])*(W/2)/(W/2+P[0]); m.push([[0,yc],R]); }
+    else { const hb=W*0.16, yc=wallH+rise*0.62-0.45, xc=W/2*(1-0.62), H=[-W/2+hb,wallH-0.45];
+      mir(A,H); mir(H,[H[0], g.ceilY(H[0])-0.45]); mir([-W/2,wallH-3.4],H); mir(H,[-xc*0.35,yc]); m.push([[-xc,yc],[xc,yc]]); m.push([[0,yc],R]); }
+    return m; };
+  g.trussLF = kind => g.truss(kind).reduce((a,[p,q]) => a+Math.hypot(q[0]-p[0],q[1]-p[1]),0)*g.nTruss;
+  g.pendPos = []; g.chandPos = [];
+  for(let i=0;i<g.bays;i++){ const z=(i+0.5)*g.bayL; for(const sx of [-1,1]){ g.pendPos.push([sx*W*0.22,z]); if(i%2===0) g.chandPos.push([sx*W*0.2,z]); } }
+  g.trackPos = []; for(let z=7; z<=D-6; z+=8.5) for(const sx of [-1,1]) g.trackPos.push([sx*W*0.16, z]);
+  g.fanZ = [D*0.25, D*0.5, D*0.75];
+  g.nProj = s.screens==='both'||s.screens==='motor' ? 2 : s.screens==='single' ? 1 : 0;
+  // narthex / seating zone
+  g.narthexOn = s.narthex!=='none'; g.nD = Math.min(d.narthexD, D*0.3);
+  g.zNarthex = D-g.nD;
+  const anti = s.arrange==='antiphonal';
+  g.aisle = Math.min(W-10, anti ? Math.max(lay(s,'aisleW'), 10) : lay(s,'aisleW'));
+  const spacing = lay(s,'rowSpacing'), cw = d.chairW;
+  const sideClear = Math.max(s.sideAisles==='yes'?4:0.5, s.pilasters==='columns'?6.5:0, s.pilasters==='pilasters'?1:0);
+  g.sideClear = sideClear;
+  g.zFront = g.zStep + d.frontClear + (s.rail!=='none'?1.5:0) + (s.choir==='chancel'?0:0);
+  g.zRear = D - Math.max(d.rearClear, g.narthexOn ? g.nD+4 : 0, s.choir==='rear' ? 14 : 0);
+  const avail = Math.max(0, g.zRear-g.zFront);
+  g.rowsList = [];
+  if(!anti){
+    const maxPer = Math.max(0, Math.floor(((W-g.aisle)/2 - sideClear)/cw)), per = Math.min(lay(s,'perRow'), maxPer);
+    const maxRows = avail<1.6 ? 0 : Math.floor((avail-1.6)/spacing)+1, rows = Math.min(lay(s,'rows'), maxRows);
+    if(per < lay(s,'perRow')) g.warn.push(`Only ${per} seats per row fit beside a ${g.aisle} ft aisle (asked for ${lay(s,'perRow')}).`);
+    if(rows < lay(s,'rows')) g.warn.push(`Only ${rows} rows fit at ${spacing} ft spacing (asked for ${lay(s,'rows')}).`);
+    for(let i=0;i<rows;i++) for(const sx of [-1,1]) if(per>0) g.rowsList.push({x:sx*(g.aisle/2+per*cw/2), z:g.zFront+0.8+i*spacing, ry:0, len:per*cw, n:per});
+  } else {
+    const rows = Math.max(0, Math.min(4, lay(s,'rows'), Math.floor(((W-g.aisle)/2 - sideClear - 1.6)/spacing)+1)), nn = Math.floor(avail/cw);
+    for(let r=0;r<rows;r++) for(const sx of [-1,1]) if(nn>0) g.rowsList.push({x:sx*(g.aisle/2+0.8+r*spacing), z:g.zFront+avail/2, ry:sx<0?-Math.PI/2:Math.PI/2, len:nn*cw, n:nn});
+  }
+  g.seats = g.rowsList.reduce((a,r) => a+r.n, 0);
+  g.pewLF = g.rowsList.reduce((a,r) => a+r.len, 0);
+  g.lastRowZ = anti ? g.zRear : (g.rowsList.length ? Math.max(...g.rowsList.map(r=>r.z)) : g.zFront);
+  g.layoutChanged = anti || s.sideAisles==='yes' || LAYOUT_KEYS.some(k => s[k]!=null && s[k]!==DIM[k]);
+  // font
+  g.fontZ = s.fontPos==='entrance' ? D - Math.max(5, g.narthexOn ? g.nD*0.5 : 5) : Math.min(D-4, g.lastRowZ + 4.2);
+  // areas
+  g.aChancel = (g.pw+2*g.stepsD)*(g.pd+g.stepsD);
+  g.aEntry = (g.narthexOn ? W : Math.min(W,14))*g.nD;
+  const entryCut = s.entryFloor!=='asis';
+  g.aAisle = g.aisle*(D - g.zStep - (entryCut?g.nD:0));
+  g.aSeat = W*D - g.aChancel - g.aAisle - (entryCut ? g.aEntry : 0);
+  const openA = L => L.reduce((a,o) => a+o.w*o.h, 0);
+  g.wallSide = 2*D*wallH - openA(g.openL) - openA(g.openR);
+  const gable = W*wallH + W*rise/2;
+  g.roseR = Math.min(3.5, rise*0.36); g.roseSF = Math.PI*g.roseR*g.roseR;
+  g.wallRear = gable - 42;
+  g.wallChancel = gable - g.glassSF - 2*3.3*6.8;
+  g.ceilSF = 2*g.slopeL*D; g.perim = 2*(W+D);
+  const cladAll = s.clad.endsWith('All'), cladCh = s.clad!=='none';
+  g.paintSF = cladAll ? 0 : g.wallSide + g.wallRear + (s.chancelPaint==='same' && !cladCh ? g.wallChancel : 0);
+  g.chPaintSF = cladCh ? 0 : g.wallChancel;
+  g.wainsLF = 2*D + W - 6 - g.openL.concat(g.openR).filter(o=>o.y===0).reduce((a,o)=>a+o.w,0);
+  g.railLF = Math.max(0, g.pw - 4);
+  g.heavensSF = 2*g.slopeL*g.bayL;
+  g.muralSF = gw*(g.sill-0.6-g.ph);
+  g.choirLF = 2*10;
+  g.volume = W*D*(wallH+rise/2);
+  return g;
+}
+
+/* ---- acoustics: rough Sabine estimate (imperial: RT60 = 0.049 V / A) ---- */
+function acoustics(s, g){
+  const fl = (v,def) => (FLOORS[v]||FLOORS[def]).ab;
+  let A = g.aSeat*fl(s.floorSeat,'seatAsis') + g.aAisle*fl(aisleType(s),'seatAsis') + g.aChancel*fl(s.floorChancel,'chancelAsis');
+  if(s.entryFloor!=='asis') A += g.aEntry*FLOORS[s.entryFloor].ab;
+  const wallAb = s.clad.startsWith('stone') ? .03 : s.clad.startsWith('lime') ? .04 : .06;
+  const all = s.clad.endsWith('All');
+  A += (g.wallSide+g.wallRear)*(all?wallAb:.06) + g.wallChancel*(s.clad!=='none'?wallAb:.06);
+  if(s.wainscot!=='none') A += g.wainsLF*(+s.wainscot)*0.04;
+  A += g.ceilSF*({asis:.28, smooth:.07, tg:.10, coffer:.13})[s.ceilFinish];
+  A += g.glassSF*0.05 + 90;                                    // glass + misc furnishings, air
+  const per = ({asis:2.2, burgundy:2.2, tan:2.2, chapel:.3, pews:.35, pewsK:.4, used:.35})[s.seating];
+  const empty = A + g.seats*per, occ = A + g.seats*(0.4*per + 0.6*4.4);
+  const rtE = 0.049*g.volume/empty, rtO = 0.049*g.volume/occ;
+  const label = rtO<0.95 ? 'Drier' : rtO<1.5 ? 'Balanced' : rtO<2.3 ? 'Live' : 'Very live';
+  const color = rtO<0.95 ? '#9db4c8' : rtO<1.5 ? '#9fcf98' : rtO<2.3 ? '#e7c979' : '#e59a6a';
+  const note = rtO<0.95 ? 'Speech is clear; singing and chant get little support from the room.' : rtO<1.5 ? 'Good for speech with some bloom for hymns.' :
+    rtO<2.3 ? 'Supports chant, organ and hymn singing; plan the sound system for speech clarity.' : 'Cathedral-like; speech needs a well-designed column-array system.';
+  return {rtE, rtO, label, color, note};
+}
+
+/* ---- cost roll-up ---- */
+let _baseSeats = null;
+function computeCost(s, set = SET){
+  const g = geo(s);
+  if(_baseSeats==null) _baseSeats = geo(ASIS).seats;
+  g.baseSeats = _baseSeats;
+  const lines = [], bycat = {};
+  for(const cat of CATS) for(const grp of cat.groups){
+    if(grp.ref) continue;
+    for(const [k,q,note] of (grp.cost(s[grp.id], g, s) || [])){
+      if(!(q>0)) continue; const c = COST[k];
+      const ln = {cat:cat.name, catId:cat.id, gid:grp.id, grp:grp.label, key:k, item:c.label, qty:q, unit:c.unit, lo:c.lo, hi:c.hi, tlo:q*c.lo, thi:q*c.hi, note:note||''};
+      lines.push(ln); const b = bycat[cat.id] ||= {lo:0,hi:0}; b.lo += ln.tlo; b.hi += ln.thi;
+    }
+  }
+  const sub = lines.reduce((a,l) => (a.lo+=l.tlo, a.hi+=l.thi, a), {lo:0,hi:0});
+  const cont = {lo:sub.lo*set.cont/100, hi:sub.hi*set.cont/100}, des = {lo:sub.lo*set.design/100, hi:sub.hi*set.design/100};
+  const total = {lo:sub.lo+cont.lo+des.lo, hi:sub.hi+cont.hi+des.hi};
+  return {g, lines, bycat, sub, cont, des, total, seats:g.seats, baseSeats:g.baseSeats, ac:acoustics(s,g)};
+}
+
+/* ======================================================================
+   5. PROCEDURAL TEXTURES (canvas-drawn; no image assets)
+   ====================================================================== */
+function rng(seed){ let a = seed|0; return () => { a = a+0x6D2B79F5|0; let t = Math.imul(a^a>>>15, 1|a); t = t+Math.imul(t^t>>>7, 61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function sh(hex, k){ const n = parseInt(hex.slice(1),16), f = v => Math.max(0, Math.min(255, Math.round(v*k))); return `rgb(${f(n>>16)},${f(n>>8&255)},${f(n&255)})`; }
+function fill(c,w,h,col){ c.fillStyle = col; c.fillRect(0,0,w,h); }
+function speck(c,w,h,R,n,a,sz=2){ for(let i=0;i<n;i++){ c.fillStyle = R()<.5 ? `rgba(0,0,0,${a*R()})` : `rgba(255,255,255,${a*R()})`; c.fillRect(R()*w, R()*h, sz, sz); } }
+function poly(c, pts, f, stroke=true){ c.beginPath(); pts.forEach((p,i) => i ? c.lineTo(p[0],p[1]) : c.moveTo(p[0],p[1])); c.closePath(); if(f){ c.fillStyle = f; c.fill(); } if(stroke) c.stroke(); }
+function circ(c,x,y,r,f,stroke=true){ c.beginPath(); c.arc(x,y,r,0,6.3); if(f){ c.fillStyle=f; c.fill(); } if(stroke) c.stroke(); }
+function ell(c,x,y,rx,ry,f,stroke=true){ c.beginPath(); c.ellipse(x,y,rx,ry,0,0,6.3); if(f){ c.fillStyle=f; c.fill(); } if(stroke) c.stroke(); }
+function rays(c,x,y,r0,r1,n,col,lw=3){ c.save(); c.strokeStyle = col; c.lineWidth = lw; for(let i=0;i<n;i++){ const a = i/n*6.283; c.beginPath(); c.moveTo(x+Math.cos(a)*r0, y+Math.sin(a)*r0); c.lineTo(x+Math.cos(a)*r1, y+Math.sin(a)*r1); c.stroke(); } c.restore(); }
+function text(c,str,x,y,font,col,align='center'){ c.font = font; c.fillStyle = col; c.textAlign = align; c.textBaseline = 'middle'; c.fillText(str,x,y); }
+function lead(c){ c.strokeStyle = '#14141a'; c.lineWidth = 3; c.lineJoin = 'round'; }
+function scales(c,w,h,cols,R,size){ lead(c); let row = 0; for(let y=-size; y<h+size; y+=size*0.55, row++) for(let x=-size; x<w+size; x+=size) circ(c, x+(row%2?size/2:0), y, size*0.6, cols[(R()*cols.length)|0]); }
+function quarries(c,w,h,cols,R,size){ lead(c); c.lineWidth = 2; let row = 0; for(let y=-size; y<h+size; y+=size/2, row++) for(let x=-size; x<w+size; x+=size){ const cx = x+(row%2?size/2:0); poly(c, [[cx,y-size/2],[cx+size/2,y],[cx,y+size/2],[cx-size/2,y]], cols[(R()*cols.length)|0]); } }
+function crossShape(c,x,y,hh,col,lw){ c.save(); c.strokeStyle = col; c.lineWidth = lw; c.beginPath(); c.moveTo(x,y-hh*0.38); c.lineTo(x,y+hh*0.62); c.moveTo(x-hh*0.3,y-hh*0.08); c.lineTo(x+hh*0.3,y-hh*0.08); c.stroke(); c.restore(); }
+function figure(c,cx,by,ht,o){   // simple frontal standing figure for glass / icons
+  const hw = ht*0.2; lead(c);
+  if(o.halo) circ(c, cx, by-ht*0.88, ht*0.13, o.halo);
+  poly(c, [[cx-hw*0.55,by-ht*0.78],[cx+hw*0.55,by-ht*0.78],[cx+hw,by],[cx-hw,by]], o.robe);
+  if(o.mantle) poly(c, [[cx-hw*0.6,by-ht*0.78],[cx-hw*0.05,by-ht*0.7],[cx-hw*0.5,by],[cx-hw*1.1,by]], o.mantle);
+  circ(c, cx, by-ht*0.87, ht*0.075, o.skin||'#e3b98f');
+  if(o.hair){ c.fillStyle = o.hair; c.beginPath(); c.arc(cx, by-ht*0.885, ht*0.08, 3.14, 6.28); c.fill(); }
+}
+function lutherRose(c,x,y,r){ lead(c); circ(c,x,y,r,'#d7b24a'); circ(c,x,y,r*0.88,'#2f66c2');
+  for(let i=0;i<5;i++){ const a = -1.57+i*1.2566; circ(c, x+Math.cos(a)*r*0.42, y+Math.sin(a)*r*0.42, r*0.33, '#f4f1e6'); }
+  circ(c,x,y,r*0.34,'#f4f1e6',false);
+  c.fillStyle = '#c0202a'; c.beginPath(); c.moveTo(x,y+r*0.34); c.bezierCurveTo(x-r*0.5,y-r*0.05,x-r*0.2,y-r*0.42,x,y-r*0.16); c.bezierCurveTo(x+r*0.2,y-r*0.42,x+r*0.5,y-r*0.05,x,y+r*0.34); c.fill(); c.stroke();
+  crossShape(c,x,y-r*0.03,r*0.34,'#111',r*0.08); }
+
+function glassFolk(c,w,h,i,R){
+  const blues = ['#2a6fb8','#3d8bd0','#62aee0','#2e5fa8','#4a9ad6'];
+  scales(c,w,h, i===3 ? ['#9fd0ea','#bfe0f0','#7fbfe4','#d6ecf5'] : blues, R, 58); lead(c);
+  if(i===0){ // star, angel and shepherds
+    rays(c, w*.5, h*.3, 10, 150, 12, '#fff6c8', 4); poly(c, [[w*.5,h*.2],[w*.54,h*.28],[w*.62,h*.3],[w*.54,h*.33],[w*.5,h*.42],[w*.46,h*.33],[w*.38,h*.3],[w*.46,h*.28]], '#fff2a0');
+    poly(c, [[0,h*.74],[w*.3,h*.66],[w*.62,h*.74],[w,h*.68],[w,h],[0,h]], '#3f9d4c'); poly(c, [[0,h*.86],[w*.5,h*.8],[w,h*.88],[w,h],[0,h]], '#2f7f3c');
+    ell(c, w*.7, h*.8, 60, 34, '#f1f1ea'); ell(c, w*.56, h*.9, 44, 24, '#f7f7f0');
+    figure(c, w*.3, h*.9, h*.36, {robe:'#c81f2c', skin:'#d9a57a', hair:'#3a2a1c'});
+    c.strokeStyle = '#5b3a1c'; c.lineWidth = 6; c.beginPath(); c.moveTo(w*.42,h*.56); c.lineTo(w*.42,h*.92); c.stroke();
+    figure(c, w*.74, h*.58, h*.24, {robe:'#f7f7f0', halo:'#ffe36a', skin:'#e7c29c'});
+  } else if(i===1){ // Good Shepherd, seated with lamb
+    rays(c, w*.5, h*.2, 40, 150, 18, '#ffe36a', 6); circ(c, w*.5, h*.2, 62, '#ffd84a');
+    poly(c, [[0,h*.8],[w,h*.8],[w,h],[0,h]], '#d8a437'); for(let k=1;k<5;k++){ c.beginPath(); c.moveTo(w*k/5-30,h*.8); c.lineTo(w*k/5-70,h); c.stroke(); }
+    poly(c, [[w*.36,h*.3],[w*.64,h*.3],[w*.8,h*.62],[w*.84,h*.84],[w*.2,h*.84],[w*.2,h*.56]], '#c81f2c');
+    poly(c, [[w*.38,h*.2],[w*.5,h*.12],[w*.62,h*.2],[w*.66,h*.4],[w*.34,h*.4]], '#f4f1e6'); circ(c, w*.5, h*.25, 30, '#e3b98f');
+    ell(c, w*.52, h*.5, 70, 38, '#f7f7f0'); circ(c, w*.68, h*.46, 22, '#f7f7f0');
+    ell(c, w*.62, h*.78, 52, 34, '#f7f7f0'); circ(c, w*.74, h*.7, 22, '#f7f7f0'); c.lineWidth = 7; c.strokeStyle = '#f7f7f0';
+    for(const lx of [.54,.6,.66,.7]){ c.beginPath(); c.moveTo(w*lx,h*.82); c.lineTo(w*lx,h*.92); c.stroke(); }
+  } else if(i===2){ // Christ, arms raised, sunburst
+    rays(c, w*.5, h*.2, 40, 170, 20, '#ffe36a', 7); circ(c, w*.52, h*.2, 60, '#ffd84a');
+    poly(c, [[0,h*.82],[w*.4,h*.76],[w,h*.84],[w,h],[0,h]], '#e3b93f'); poly(c, [[0,h*.9],[w,h*.92],[w,h],[0,h]], '#3f9d4c');
+    ell(c, w*.2, h*.8, 50, 26, '#f1f1ea'); ell(c, w*.32, h*.86, 36, 20, '#f7f7f0');
+    poly(c, [[w*.48,h*.3],[w*.72,h*.3],[w*.92,h*.86],[w*.4,h*.86]], '#c81f2c');
+    poly(c, [[w*.5,h*.32],[w*.22,h*.14],[w*.27,h*.1],[w*.58,h*.26]], '#f4f1e6'); poly(c, [[w*.6,h*.3],[w*.44,h*.08],[w*.5,h*.05],[w*.7,h*.28]], '#f4f1e6');
+    circ(c, w*.58, h*.24, 30, '#b98a62'); c.fillStyle = '#2a1c14'; c.beginPath(); c.arc(w*.6,h*.23,32,3.6,7.4); c.fill();
+  } else { // Calvary
+    c.save(); c.globalAlpha = .7; rays(c, w*.1, h*.1, 30, 420, 22, '#ffffff', 8); c.restore(); lead(c);
+    poly(c, [[0,h*.7],[w*.35,h*.56],[w*.7,h*.62],[w,h*.72],[w,h],[0,h]], '#3f9d4c'); poly(c, [[0,h*.86],[w*.5,h*.8],[w,h*.9],[w,h],[0,h]], '#7fb85a');
+    poly(c, [[w*.1,h],[w*.4,h*.74],[w*.5,h*.76],[w*.3,h]], '#efe9d6');
+    for(const [x,y,s] of [[.42,.5,1.15],[.66,.62,.8],[.84,.68,.7]]){ c.fillStyle = '#e9dcc0'; c.fillRect(w*x-9*s,h*y-110*s,18*s,150*s); c.strokeRect(w*x-9*s,h*y-110*s,18*s,150*s); c.fillRect(w*x-44*s,h*y-78*s,88*s,16*s); c.strokeRect(w*x-44*s,h*y-78*s,88*s,16*s); }
+  }
+}
+function glassGothic(c,w,h,set,i,R){
+  const ruby = ['#8e1622','#a81d2a','#7a1220'], sapph = ['#1b3f96','#234fb0','#17347c','#2a5cc0'];
+  quarries(c,w,h, (i%2 ? ruby : sapph), R, 44); lead(c);
+  // border
+  c.lineWidth = 3; for(const [x,y,ww,hh] of [[0,0,22,h],[w-22,0,22,h],[0,h-22,w,22]]){ c.fillStyle = '#d7b24a'; c.fillRect(x,y,ww,hh); c.strokeRect(x,y,ww,hh); }
+  for(let y=10;y<h;y+=44){ circ(c,11,y,6,'#a81d2a'); circ(c,w-11,y,6,'#a81d2a'); }
+  // canopy
+  c.strokeStyle = '#e7c979'; c.lineWidth = 9; c.beginPath(); c.moveTo(34,h*.4); c.quadraticCurveTo(34,h*.12,w/2,h*.07); c.quadraticCurveTo(w-34,h*.12,w-34,h*.4); c.stroke();
+  c.lineWidth = 4; c.beginPath(); c.moveTo(54,h*.4); c.quadraticCurveTo(60,h*.2,w/2,h*.14); c.quadraticCurveTo(w-60,h*.2,w-54,h*.4); c.stroke(); lead(c);
+  const by = h*.86, ht = h*.56, cx = w/2;
+  const label = t => { c.fillStyle = '#f1e7c8'; c.fillRect(30,h*.88,w-60,h*.075); lead(c); c.strokeRect(30,h*.88,w-60,h*.075); text(c,t,cx,h*.92,'bold 22px Georgia','#3a2a12'); };
+  if(set==='passion'){
+    if(i===0){ rays(c,cx,h*.3,10,70,8,'#fff2a0',4); figure(c,cx-30,by,ht*.85,{robe:'#2452b5',mantle:'#f4f1e6',halo:'#ffd84a'}); poly(c,[[cx+10,by-70],[cx+110,by-70],[cx+96,by-20],[cx+24,by-20]],'#b98a3a'); circ(c,cx+60,by-78,17,'#f4dcc0'); circ(c,cx+60,by-78,26,null); label('NATIVITAS'); }
+    if(i===1){ c.fillStyle = '#5b3a1c'; c.fillRect(cx-11,h*.3,22,h*.56); c.fillRect(cx-95,h*.42,190,20); lead(c); c.strokeRect(cx-11,h*.3,22,h*.56); c.strokeRect(cx-95,h*.42,190,20);
+      circ(c,cx,h*.4,30,'#ffd84a'); poly(c,[[cx-14,h*.45],[cx+14,h*.45],[cx+10,h*.7],[cx-10,h*.7]],'#f1dcc2'); poly(c,[[cx-86,h*.425],[cx-14,h*.455],[cx-14,h*.48],[cx-86,h*.45]],'#f1dcc2'); poly(c,[[cx+86,h*.425],[cx+14,h*.455],[cx+14,h*.48],[cx+86,h*.45]],'#f1dcc2');
+      circ(c,cx,h*.41,15,'#e3b98f'); poly(c,[[cx-14,h*.6],[cx+14,h*.6],[cx+16,h*.68],[cx-16,h*.68]],'#f4f1e6'); label('CRUCIFIXUS'); }
+    if(i===2){ figure(c,cx,by,ht,{robe:'#f4f1e6',mantle:'#a81d2a',halo:'#ffd84a',hair:'#5b3a1c'}); poly(c,[[cx-26,by-ht*.97],[cx-26,by-ht*1.06],[cx-13,by-ht*1.01],[cx,by-ht*1.08],[cx+13,by-ht*1.01],[cx+26,by-ht*1.06],[cx+26,by-ht*.97]],'#d7b24a'); circ(c,cx+50,by-ht*.45,18,'#2f66c2'); crossShape(c,cx+50,by-ht*.56,26,'#d7b24a',5); label('CHRISTUS REX'); }
+    if(i===3){ rays(c,cx,by-ht*.88,34,90,14,'#ffe36a',4); figure(c,cx,by,ht,{robe:'#fbf8ee',halo:'#ffd84a',hair:'#5b3a1c'}); c.strokeStyle = '#d7b24a'; c.lineWidth = 5; c.beginPath(); c.moveTo(cx+62,by); c.lineTo(cx+62,by-ht*1.05); c.stroke(); lead(c); poly(c,[[cx+62,by-ht*1.03],[cx+132,by-ht*.98],[cx+62,by-ht*.82]],'#fbf8ee'); crossShape(c,cx+84,by-ht*.94,34,'#c0202a',5); label('RESURREXIT'); }
+  } else if(set==='evangelists'){
+    const names = ['S. MATTHAEUS','S. MARCUS','S. LUCAS','S. IOANNES'], robes = ['#2f7f3c','#a81d2a','#2452b5','#6a2a8a'], man = ['#d7b24a','#f4f1e6','#d7b24a','#f4f1e6'];
+    figure(c,cx,by,ht,{robe:robes[i],mantle:man[i],halo:'#ffd84a',hair:i===3?'#8a5a2a':'#9a9a9a'}); poly(c,[[cx+8,by-ht*.52],[cx+52,by-ht*.52],[cx+52,by-ht*.34],[cx+8,by-ht*.34]],'#7a1220'); crossShape(c,cx+30,by-ht*.42,20,'#d7b24a',3); label(names[i]);
+  } else {
+    const cy = h*.52, r = w*.3; circ(c,cx,cy,r+12,'#d7b24a'); circ(c,cx,cy,r,'#f1ecd8');
+    if(i===0){ c.fillStyle = '#c9a25a'; c.beginPath(); c.arc(cx,cy-10,r*.62,0.2,2.94); c.lineTo(cx,cy-r*.45); c.closePath(); c.fill(); c.stroke(); for(let k=-3;k<=3;k++){ c.beginPath(); c.moveTo(cx,cy-r*.42); c.lineTo(cx+k*r*.19,cy+r*.5); c.stroke(); } for(const dx of [-30,0,30]) ell(c,cx+dx,cy+r*.72,7,12,'#2f66c2'); label('BAPTISMA'); }
+    if(i===1){ lutherRose(c,cx,cy,r*.92); label('V · D · M · A'); }
+    if(i===2){ ell(c,cx,cy+10,r*.5,r*.32,'#fbf8ee'); circ(c,cx-r*.5,cy-r*.18,r*.2,'#fbf8ee'); circ(c,cx-r*.5,cy-r*.18,r*.3,null); c.lineWidth = 7; c.strokeStyle='#fbf8ee'; for(const dx of [-.3,-.1,.2,.38]){ c.beginPath(); c.moveTo(cx+r*dx,cy+r*.3); c.lineTo(cx+r*dx,cy+r*.62); c.stroke(); } c.strokeStyle = '#8a5a2a'; c.lineWidth = 5; c.beginPath(); c.moveTo(cx+r*.1,cy+r*.5); c.lineTo(cx+r*.3,cy-r*.75); c.stroke(); lead(c); poly(c,[[cx+r*.3,cy-r*.75],[cx+r*.8,cy-r*.62],[cx+r*.26,cy-r*.42]],'#fbf8ee'); crossShape(c,cx+r*.45,cy-r*.6,r*.26,'#c0202a',4); label('AGNUS DEI'); }
+    if(i===3){ circ(c,cx,cy-r*.52,r*.26,'#fbf8ee'); crossShape(c,cx,cy-r*.52,r*.26,'#c0202a',3); poly(c,[[cx-r*.42,cy-r*.2],[cx+r*.42,cy-r*.2],[cx+r*.2,cy+r*.22],[cx-r*.2,cy+r*.22]],'#d7b24a'); poly(c,[[cx-r*.06,cy+r*.22],[cx+r*.06,cy+r*.22],[cx+r*.06,cy+r*.52],[cx-r*.06,cy+r*.52]],'#d7b24a'); poly(c,[[cx-r*.34,cy+r*.52],[cx+r*.34,cy+r*.52],[cx+r*.28,cy+r*.66],[cx-r*.28,cy+r*.66]],'#d7b24a'); label('CALIX SALUTARIS'); }
+  }
+}
+function damask(c,w,h,col,R,fig){ fill(c,w,h,col); c.fillStyle = fig; c.globalAlpha = .28;
+  for(let r=0;r<8;r++) for(let k=0;k<5;k++){ const x = k*w/4+(r%2?w/8:0), y = r*h/7; c.beginPath(); c.moveTo(x,y-34); c.bezierCurveTo(x+34,y-10,x+26,y+22,x,y+34); c.bezierCurveTo(x-26,y+22,x-34,y-10,x,y-34); c.fill(); circ(c,x,y,7,col,false); }
+  c.globalAlpha = 1; const gr = c.createLinearGradient(0,0,w,0); for(let k=0;k<=12;k++) gr.addColorStop(k/12, k%2 ? 'rgba(0,0,0,.2)' : 'rgba(255,255,255,.06)'); c.fillStyle = gr; c.fillRect(0,0,w,h); }
+function fleury(c,x,y,s,col){ c.save(); c.fillStyle = col; c.fillRect(x-s*.09,y-s*.5,s*.18,s); c.fillRect(x-s*.36,y-s*.22,s*.72,s*.16);
+  for(const [dx,dy] of [[0,-.52],[-.38,-.14],[.38,-.14],[0,.5]]){ circ(c,x+dx*s,y+dy*s,s*.1,col,false); } c.restore(); }
+const seasonGold = k => (k==='white' ? '#b8922e' : '#e7c979');
+
+const TEXGEN = {
+  carpet(c,w,h,R,col){ fill(c,w,h,col); speck(c,w,h,R,26000,.16,2); },
+  planks(c,w,h,R,col,n){ n = +n; const ph = h/n; for(let r=0;r<n;r++){ let x = -R()*w*.5; while(x<w){ const L = w*(.35+R()*.4); c.fillStyle = sh(col,.84+R()*.3); c.fillRect(x,r*ph,L,ph); c.strokeStyle = 'rgba(0,0,0,.35)'; c.lineWidth = 1.5; c.strokeRect(x,r*ph,L,ph); x += L; } }
+    c.strokeStyle = 'rgba(0,0,0,.06)'; c.lineWidth = 1; for(let i=0;i<260;i++){ const y = R()*h, x = R()*w; c.beginPath(); c.moveTo(x,y); c.lineTo(x+40+R()*90,y+R()*2-1); c.stroke(); } },
+  tiles(c,w,h,R,col,grout,n,slate){ n = +n; fill(c,w,h,grout); const t = w/n; for(let i=0;i<n;i++) for(let j=0;j<n;j++){ const k = slate ? .7+R()*.6 : .92+R()*.14; c.fillStyle = sh(col,k); c.fillRect(i*t+2,j*t+2,t-4,t-4); } speck(c,w,h,R,9000,.07,3); },
+  checker(c,w,h,R){ const n = 4, t = w/n; for(let i=0;i<n;i++) for(let j=0;j<n;j++){ c.fillStyle = (i+j)%2 ? '#1d1c1b' : '#ebe5d6'; c.fillRect(i*t,j*t,t,t); } c.strokeStyle = 'rgba(128,128,128,.25)'; for(let i=0;i<70;i++){ c.beginPath(); const x = R()*w, y = R()*h; c.moveTo(x,y); c.bezierCurveTo(x+30,y+R()*30,x+50,y-R()*30,x+90*R(),y+40*R()); c.stroke(); } },
+  terrazzo(c,w,h,R){ fill(c,w,h,'#cfc6b3'); const cols = ['#8d8372','#efe9d8','#6b5a4a','#a9805a','#55595a','#d9c9a0']; for(let i=0;i<2600;i++){ c.fillStyle = cols[(R()*cols.length)|0]; const x = R()*w, y = R()*h, s = 2+R()*6; c.beginPath(); c.moveTo(x,y); c.lineTo(x+s,y+R()*s); c.lineTo(x+R()*s,y+s); c.closePath(); c.fill(); } },
+  runner(c,w,h,R){ TEXGEN.tiles(c,w,h,R,'#c9bda6','#978c78',4); c.fillStyle = '#3b4142'; c.fillRect(0,0,w*.11,h); c.fillRect(w*.89,0,w*.11,h); c.fillStyle = '#b08d3c'; c.fillRect(w*.11,0,5,h); c.fillRect(w*.89-5,0,5,h); },
+  stone(c,w,h,R){ fill(c,w,h,'#6d665b'); const cols = ['#a79d8b','#b5ab98','#948a79','#c0b6a2','#8c8474']; let y = 0; while(y<h){ const ch = [42,64,52,86][(R()*4)|0]; let x = -R()*60; while(x<w){ const bw = 60+R()*120; c.fillStyle = cols[(R()*cols.length)|0]; c.fillRect(x+2,y+2,bw-4,ch-4); x += bw; } y += ch; } speck(c,w,h,R,14000,.1,3); },
+  lime(c,w,h,R){ fill(c,w,h,'#d8ceb6'); speck(c,w,h,R,12000,.05,3); c.strokeStyle = 'rgba(90,80,60,.55)'; c.lineWidth = 2; for(let r=0;r<4;r++){ c.beginPath(); c.moveTo(0,r*h/4); c.lineTo(w,r*h/4); c.stroke(); for(let k=0;k<2;k++){ const x = (k+(r%2?.5:0))*w/2; c.beginPath(); c.moveTo(x,r*h/4); c.lineTo(x,(r+1)*h/4); c.stroke(); } } },
+  popcorn(c,w,h,R){ fill(c,w,h,'#f0ece2'); speck(c,w,h,R,30000,.2,2); },
+  tg(c,w,h,R,col){ const n = 8, bw = w/n; for(let i=0;i<n;i++){ c.fillStyle = sh(col,.86+R()*.26); c.fillRect(i*bw,0,bw,h); c.fillStyle = 'rgba(0,0,0,.4)'; c.fillRect(i*bw,0,2.5,h); } c.strokeStyle = 'rgba(0,0,0,.07)'; for(let i=0;i<300;i++){ const x = R()*w, y = R()*h; c.beginPath(); c.moveTo(x,y); c.lineTo(x+R()*2-1,y+40+R()*100); c.stroke(); } },
+  coffer(c,w,h,R){ fill(c,w,h,'#6f4a2a'); const n = 2, t = w/n, b = t*.14; for(let i=0;i<n;i++) for(let j=0;j<n;j++){ const x = i*t+b, y = j*t+b, s = t-2*b; c.fillStyle = '#3a2614'; c.fillRect(x-6,y-6,s+12,s+12); c.fillStyle = '#e6dcc4'; c.fillRect(x,y,s,s); c.strokeStyle = '#b08d3c'; c.lineWidth = 3; c.strokeRect(x+10,y+10,s-20,s-20); const gr = c.createLinearGradient(x,y,x,y+s); gr.addColorStop(0,'rgba(0,0,0,.28)'); gr.addColorStop(.3,'rgba(0,0,0,0)'); c.fillStyle = gr; c.fillRect(x,y,s,s); } },
+  wood(c,w,h,R,col){ fill(c,w,h,col); for(let i=0;i<420;i++){ c.strokeStyle = R()<.5 ? 'rgba(0,0,0,.09)' : 'rgba(255,220,170,.07)'; c.lineWidth = 1+R()*2; const x = R()*w; c.beginPath(); c.moveTo(x,0); c.bezierCurveTo(x+R()*14-7,h*.3,x+R()*14-7,h*.6,x+R()*10-5,h); c.stroke(); } },
+  panel(c,w,h,R,col){ TEXGEN.wood(c,w,h,R,col); const n = 2, pw = w/n; for(let i=0;i<n;i++){ const x = i*pw+pw*.12, y = h*.1, ww = pw*.76, hh = h*.8; c.fillStyle = 'rgba(0,0,0,.22)'; c.fillRect(x,y,ww,hh); c.fillStyle = sh(col,1.06); c.fillRect(x+7,y+7,ww-9,hh-9); c.strokeStyle = 'rgba(0,0,0,.3)'; c.lineWidth = 2; c.strokeRect(x+18,y+18,ww-36,hh-36); } c.fillStyle = 'rgba(0,0,0,.25)'; c.fillRect(0,0,w,5); },
+  doorpanel(c,w,h,R,col){ TEXGEN.wood(c,w,h,R,col); for(const [x,y,ww,hh] of [[.12,.06,.32,.4],[.56,.06,.32,.4],[.12,.52,.32,.2],[.56,.52,.32,.2],[.12,.76,.32,.18],[.56,.76,.32,.18]]){ c.fillStyle = 'rgba(0,0,0,.3)'; c.fillRect(x*w,y*h,ww*w,hh*h); c.fillStyle = sh(col,1.08); c.fillRect(x*w+5,y*h+5,ww*w-7,hh*h-7); } },
+  siding(c,w,h,R){ fill(c,w,h,'#8fa3b8'); for(let y=0;y<h;y+=32){ c.fillStyle = 'rgba(0,0,0,.25)'; c.fillRect(0,y,w,3); c.fillStyle = 'rgba(255,255,255,.12)'; c.fillRect(0,y+3,w,4); } },
+  shingle(c,w,h,R){ fill(c,w,h,'#45484d'); for(let r=0;r<16;r++) for(let x=-20;x<w;x+=44){ c.fillStyle = sh('#4a4d52',.8+R()*.4); c.fillRect(x+(r%2?22:0),r*32,42,30); } },
+  grass(c,w,h,R){ fill(c,w,h,'#5c9a3c'); speck(c,w,h,R,30000,.14,3); },
+  asphalt(c,w,h,R){ fill(c,w,h,'#3c3f43'); speck(c,w,h,R,30000,.12,2); },
+  damask(c,w,h,R,col,fig){ damask(c,w,h,col,R,fig); },
+  stars(c,w,h,R){ const gr = c.createLinearGradient(0,0,0,h); gr.addColorStop(0,'#0f1f5a'); gr.addColorStop(1,'#1b3a8c'); c.fillStyle = gr; c.fillRect(0,0,w,h);
+    for(let i=0;i<46;i++){ const x = R()*w, y = R()*h, s = 5+R()*9; c.fillStyle = '#e7c35a'; c.beginPath(); for(let k=0;k<8;k++){ const a = k*.7854, r = k%2 ? s*.32 : s; c.lineTo(x+Math.cos(a)*r, y+Math.sin(a)*r); } c.closePath(); c.fill(); } },
+  band(c,w,h,R,col,kind){ fill(c,w,h,col); c.fillStyle = '#d7b24a'; c.fillRect(0,h*.06,w,h*.07); c.fillRect(0,h*.87,w,h*.07);
+    if(kind==='stencil') for(let k=0;k<4;k++){ const x = (k+.5)*w/4, y = h/2, r = h*.13; c.strokeStyle = '#e7c979'; c.lineWidth = 4; for(const [dx,dy] of [[0,-1],[1,0],[0,1],[-1,0]]) circ(c,x+dx*r,y+dy*r,r,null); circ(c,x,y,r*.4,'#e7c979',false); circ(c,x+w/8,y,5,'#e7c979',false); } },
+  diaper(c,w,h,R,col){ fill(c,w,h,col); c.strokeStyle = 'rgba(215,178,74,.75)'; c.lineWidth = 3; for(let k=-4;k<8;k++){ c.beginPath(); c.moveTo(k*w/4,0); c.lineTo(k*w/4+w,h); c.stroke(); c.beginPath(); c.moveTo(k*w/4,0); c.lineTo(k*w/4-w,h); c.stroke(); } for(let i=0;i<4;i++) for(let j=0;j<8;j++) fleury(c,(i+.5)*w/4+(j%2?w/8:0)-w/16, j*h/8+h/16, 26, '#e7c979'); },
+  mural(c,w,h,R){ const gr = c.createLinearGradient(0,0,0,h); gr.addColorStop(0,'#152a6e'); gr.addColorStop(.6,'#2a4a9c'); gr.addColorStop(1,'#5a3a2a'); c.fillStyle = gr; c.fillRect(0,0,w,h);
+    c.save(); c.globalAlpha = .5; rays(c,w/2,h*.2,40,w*.8,36,'#e7c35a',5); c.restore(); for(let i=0;i<60;i++) circ(c,R()*w,R()*h*.5,2+R()*2,'#f1dc8a',false);
+    lead(c); c.lineWidth = 2; for(const sx of [-1,1]) for(let k=0;k<3;k++){ const x = w/2+sx*(w*.2+k*w*.11), by = h*.86-k*8; poly(c,[[x,by-150],[x+sx*90,by-230],[x+sx*70,by-110]],'#f1e7c8'); figure(c,x,by,190,{robe:['#f4f1e6','#d7b24a','#c9d6f0'][k],halo:'#ffd84a',hair:'#8a5a2a'}); }
+    c.fillStyle = 'rgba(20,20,40,.55)'; c.fillRect(0,h*.89,w,h*.08); text(c,'HOLY · HOLY · HOLY · LORD GOD OF SABAOTH',w/2,h*.93,'bold 24px Georgia','#e7c979'); },
+  glass(c,w,h,R,set,i){ i = +i; if(set==='asis'||set==='restore') glassFolk(c,w,h,i,R); else glassGothic(c,w,h,set,i,R); if(set==='asis'){ c.fillStyle = 'rgba(40,40,30,.10)'; c.fillRect(0,0,w,h); } },
+  sideglass(c,w,h,R){ quarries(c,w,h,['#e9dfb8','#d9cf9c','#efe6c6','#cfd9c0'],R,52); lead(c); for(const [x,y,ww,hh] of [[0,0,20,h],[w-20,0,20,h],[0,0,w,20],[0,h-20,w,20]]){ c.fillStyle = '#1b3f96'; c.fillRect(x,y,ww,hh); c.strokeRect(x,y,ww,hh); } circ(c,w/2,h*.4,w*.26,'#a81d2a'); circ(c,w/2,h*.4,w*.21,'#1b3f96'); crossShape(c,w/2,h*.4,w*.26,'#e7c979',9); },
+  rosewin(c,w,h,R){ fill(c,w,h,'#222'); const x = w/2, y = h/2, r = w*.49; lead(c); circ(c,x,y,r,'#1b3f96'); for(let i=0;i<12;i++){ const a = i/12*6.283; c.save(); c.translate(x,y); c.rotate(a); c.beginPath(); c.moveTo(0,-r*.3); c.bezierCurveTo(r*.2,-r*.5,r*.18,-r*.85,0,-r*.96); c.bezierCurveTo(-r*.18,-r*.85,-r*.2,-r*.5,0,-r*.3); c.fillStyle = ['#a81d2a','#2a5cc0','#d7b24a','#2f7f3c'][i%4]; c.fill(); c.stroke(); circ(c,0,-r*.72,r*.07,'#f4f1e6'); c.restore(); } lutherRose(c,x,y,r*.3); },
+  banner(c,w,h,R,kind,season,side){ const col = SEASONS[season][0], gold = seasonGold(season);
+    if(kind==='vinyl'){ fill(c,w,h,col); c.fillStyle = 'rgba(255,255,255,.07)'; c.fillRect(0,0,w,h*.5); fleury(c,w/2,h*.4,w*.62, season==='white' ? '#b8922e' : sh(col,1.9).replace('rgb(0,0,0)','#555')); 
+      text(c, ({green:['Grow in','Grace'],white:['Christ is','Risen'],violet:['Return to','the Lord'],blue:['O Come','Emmanuel'],red:['Come','Holy Spirit'],black:['It is','Finished']})[season][+side], w/2, h*.84, 'italic 44px Georgia', season==='white' ? '#7a5a1a' : '#f4f1e6'); }
+    else { damask(c,w,h,col,R,gold); c.fillStyle = gold; c.fillRect(w*.08,0,w*.07,h); c.fillRect(w*.85,0,w*.07,h); fleury(c,w/2,h*.36,w*.5,gold); c.fillRect(0,h*.9,w,h*.02); for(let x=4;x<w;x+=12) c.fillRect(x,h*.92,5,h*.08); } },
+  parament(c,w,h,R,season,full){ const col = SEASONS[season][0], gold = seasonGold(season); damask(c,w,h,col,R,gold);
+    if(full){ c.fillStyle = gold; for(const x of [.2,.76]) c.fillRect(w*x,0,w*.04,h); c.fillRect(0,h*.2,w,h*.03); for(let x=3;x<w;x+=10) c.fillRect(x,h*.23,4,h*.05); }
+    c.strokeStyle = gold; c.lineWidth = 5; circ(c,w/2,h*.56,h*.22,null); text(c,'IHS',w/2,h*.57,`bold ${h*.2|0}px Georgia`,gold); c.strokeRect(4,4,w-8,h-8); },
+  slide(c,w,h,R){ const gr = c.createLinearGradient(0,0,w,h); gr.addColorStop(0,'#aeb9d6'); gr.addColorStop(1,'#8f9cc4'); c.fillStyle = gr; c.fillRect(0,0,w,h); text(c,'Praise the Almighty, My Soul, Adore Him',w/2,h*.2,'bold 26px sans-serif','#fff'); for(let i=0;i<5;i++){ c.fillStyle = 'rgba(255,255,255,.75)'; c.fillRect(w*.14,h*(.36+i*.09),w*(.5+R()*.22),7); } c.strokeStyle = '#111'; c.lineWidth = 14; c.strokeRect(0,0,w,h); },
+  hymnboard(c,w,h,R,kind){ TEXGEN.wood(c,w,h,R, kind==='new' ? '#7a5230' : '#b98a4e'); const nums = ['901','536','806','922','543','677']; text(c,'HYMNS',w/2,h*.2, 'bold 30px Georgia', kind==='new' ? '#e7c979' : '#3a2a12');
+    nums.forEach((n,i) => { c.fillStyle = kind==='new' ? '#1b1712' : '#e9dfc4'; c.fillRect(w*.22,h*(.27+i*.115),w*.56,h*.09); text(c,n,w/2,h*(.318+i*.115),'bold 34px Georgia', kind==='new' ? '#e7c979' : '#222'); }); },
+  sign(c,w,h,R,str,bg,fg){ fill(c,w,h,bg); text(c,str,w/2,h/2,`bold ${h*.62|0}px sans-serif`,fg); },
+  outside(c,w,h,R){ const gr = c.createLinearGradient(0,0,0,h); gr.addColorStop(0,'#cfe2f2'); gr.addColorStop(.55,'#e9f0ee'); gr.addColorStop(.56,'#7fae5a'); gr.addColorStop(1,'#5c9a3c'); c.fillStyle = gr; c.fillRect(0,0,w,h); for(let i=0;i<9;i++) circ(c,R()*w,h*(.36+R()*.14),40+R()*50,sh('#3f7a36',.8+R()*.4),false); },
+  glow(c,w,h){ const gr = c.createLinearGradient(0,h,0,0); gr.addColorStop(0,'rgba(255,255,255,1)'); gr.addColorStop(.25,'rgba(255,255,255,.5)'); gr.addColorStop(1,'rgba(255,255,255,0)'); c.fillStyle = gr; c.fillRect(0,0,w,h); },
+  pool(c,w,h){ const gr = c.createRadialGradient(w/2,h/2,0,w/2,h/2,w/2); gr.addColorStop(0,'rgba(255,255,255,.9)'); gr.addColorStop(1,'rgba(255,255,255,0)'); c.fillStyle = gr; c.fillRect(0,0,w,h); },
+  icon(c,w,h,R,i){ fill(c,w,h,'#c9a23e'); speck(c,w,h,R,5000,.12,3); lead(c); figure(c,w/2,h*.98,h*.95,{robe:+i?'#2452b5':'#8e1622',mantle:+i?'#8e1622':'#2452b5',halo:'#f1d77a',hair:'#4a2f1a'}); if(!+i){ poly(c,[[w*.56,h*.5],[w*.8,h*.5],[w*.8,h*.72],[w*.56,h*.72]],'#f4f1e6'); text(c,'ΑΩ',w*.68,h*.61,'bold 30px Georgia','#8e1622'); } c.strokeStyle = '#5a3a22'; c.lineWidth = 22; c.strokeRect(0,0,w,h); },
+  station(c,w,h,R,i){ fill(c,w,h,'#d9ccb0'); speck(c,w,h,R,4000,.1,3); c.strokeStyle = '#4a3320'; c.lineWidth = 6; c.save(); c.translate(w/2,h*.5); c.rotate(-.5+(+i%5)*.12); c.strokeRect(-9,-h*.3,18,h*.5); c.strokeRect(-h*.16,-h*.2,h*.32,16); c.restore(); circ(c,w*.4,h*.62,20,'#b98a62'); poly(c,[[w*.3,h*.68],[w*.52,h*.68],[w*.6,h*.9],[w*.24,h*.9]],'#8e1622'); text(c,['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV'][+i],w/2,h*.12,'bold 40px Georgia','#4a3320'); c.lineWidth = 18; c.strokeStyle = '#5a3a22'; c.strokeRect(0,0,w,h); },
+  textband(c,w,h,R,str,bg,fg){ fill(c,w,h,bg); text(c,str,w/2,h/2,`bold ${h*.5|0}px Georgia`,fg); },
+};
+const TEXSIZE = {glass:[384,640], banner:[256,512], parament:[384,384], slide:[512,320], hymnboard:[256,640], sign:[512,128], glow:[8,128], pool:[128,128], band:[512,128], icon:[256,340], station:[256,320], textband:[2048,64], mural:[1024,512], outside:[512,512], sideglass:[256,384]};
+const TEXC = new Map();
+let MAXANISO = 4;
+function TX(name){
+  let t = TEXC.get(name); if(t) return t;
+  const a = name.split(':'), k = a[0], [w,h] = TEXSIZE[k] || [512,512];
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+  let seed = 7; for(const ch of name) seed = seed*31 + ch.charCodeAt(0) | 0;
+  TEXGEN[k](cv.getContext('2d'), w, h, rng(seed), ...a.slice(1));
+  t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = MAXANISO;
+  TEXC.set(name, t); return t;
+}
+TEXGEN.flag = (c,w,h,R,kind) => { if(kind==='us'){ for(let i=0;i<13;i++){ c.fillStyle = i%2 ? '#f1ede2' : '#b22234'; c.fillRect(i*w/13,0,w/13+1,h); } c.fillStyle = '#2a3a6e'; c.fillRect(0,0,w*.54,h*.4); for(let i=0;i<30;i++) circ(c,(i%5+.5)*w*.1,((i/5|0)+.5)*h*.065,3,'#fff',false); }
+  else { fill(c,w,h,'#f1ede2'); c.fillStyle = '#2a3a8e'; c.fillRect(0,0,w*.5,h*.34); crossShape(c,w*.25,h*.16,h*.2,'#b22234',8); }
+  const gr = c.createLinearGradient(0,0,w,0); for(let k=0;k<=8;k++) gr.addColorStop(k/8, k%2 ? 'rgba(0,0,0,.25)' : 'rgba(0,0,0,0)'); c.fillStyle = gr; c.fillRect(0,0,w,h); };
+TEXSIZE.flag = [256,512];
+
+/* ======================================================================
+   6. THREE.JS SCENE
+   ====================================================================== */
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true, preserveDrawingBuffer:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+MAXANISO = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(68, 1, 0.2, 1500);
+const orbit = new OrbitControls(camera, canvas); orbit.enabled = false; orbit.enableDamping = true; orbit.maxPolarAngle = Math.PI*0.495;
+
+const UNIT = new THREE.BoxGeometry(1,1,1), SPH = new THREE.SphereGeometry(1,12,8);
+const MATS = new Map();
+function M(color, o={}){
+  const key = 's'+color+JSON.stringify(o); let m = MATS.get(key); if(m) return m;
+  const p = {color, roughness:o.r ?? .85, metalness:o.m ?? 0};
+  if(o.map) p.map = TX(o.map);
+  if(o.e){ p.emissive = new THREE.Color(o.e); p.emissiveIntensity = o.ei ?? 1; }
+  if(o.side) p.side = THREE.DoubleSide;
+  if(o.op != null){ p.transparent = true; p.opacity = o.op; p.depthWrite = false; }
+  m = new THREE.MeshStandardMaterial(p); MATS.set(key, m); return m;
+}
+function MB(color, o={}){   // unlit (glowing glass, signs, light washes)
+  const key = 'b'+color+JSON.stringify(o); let m = MATS.get(key); if(m) return m;
+  const p = {color, toneMapped:false};
+  if(o.map) p.map = TX(o.map);
+  if(o.side) p.side = THREE.DoubleSide;
+  if(o.add){ p.blending = THREE.AdditiveBlending; p.transparent = true; p.depthWrite = false; p.opacity = o.op ?? 1; }
+  else if(o.op != null){ p.transparent = true; p.opacity = o.op; }
+  m = new THREE.MeshBasicMaterial(p); MATS.set(key, m); return m;
+}
+const wood = col => M('#ffffff', {map:'wood:'+col, r:.78});
+const POST = '#7a4526', TRIM = '#8a5a34', PINE = '#d6b47a', OAK = '#8b6540', DKOAK = '#5e3d24', COVE = '#b8773c';
+const BRASS = () => M('#c9a44a', {m:.35, r:.4, e:'#3a2a08', ei:.5}), IRON = () => M('#1b1a19', {m:.25, r:.55}), GOLD = () => M('#e0bb55', {m:.4, r:.35, e:'#4a3508', ei:.6});
+const WHITE = () => M('#f1eee6', {r:.8}), BLACK = () => M('#151515', {r:.6}), LINEN = () => M('#f6f3ea', {r:.95});
+
+let root = null, IB = new Map(), G = null, ST = null, fans = [], flames = [];
+const _q = new THREE.Quaternion(), _e = new THREE.Euler(), _p = new THREE.Vector3(), _s = new THREE.Vector3(), _m = new THREE.Matrix4();
+const mat4 = (x,y,z,ry=0) => new THREE.Matrix4().compose(new THREE.Vector3(x,y,z), new THREE.Quaternion().setFromEuler(new THREE.Euler(0,ry,0)), new THREE.Vector3(1,1,1));
+/* instanced box: every box in the model goes through here, batched per material */
+function ib(mat,w,h,d,x,y,z,B,ry=0,rz=0){
+  _e.set(0,ry,rz); _q.setFromEuler(_e); _m.compose(_p.set(x,y,z), _q, _s.set(w,h,d)); if(B) _m.premultiply(B);
+  let a = IB.get(mat); if(!a){ a = []; IB.set(mat, a); } a.push(_m.clone());
+}
+function flushIB(){ for(const [mat,arr] of IB){ const im = new THREE.InstancedMesh(UNIT, mat, arr.length); arr.forEach((m,i) => im.setMatrixAt(i,m)); im.frustumCulled = false; root.add(im); } IB = new Map(); }
+function sm(geo, mat, x=0,y=0,z=0, B, ry=0){ const m = new THREE.Mesh(geo, mat); m.position.set(x,y,z); m.rotation.y = ry; if(B){ m.updateMatrix(); m.applyMatrix4(B); } root.add(m); return m; }
+const cy = (mat,rt,rb,h,x,y,z,B,seg=12,open=false) => sm(new THREE.CylinderGeometry(rt,rb,h,seg,1,open), mat, x,y,z, B);
+function sp(mat,r,x,y,z,B,sy=1){ const m = new THREE.Mesh(SPH, mat); m.position.set(x,y,z); m.scale.set(r,r*sy,r); if(B){ m.updateMatrix(); m.applyMatrix4(B); } root.add(m); return m; }
+const dist = (a,b) => Math.hypot(a[0]-b[0], a[1]-b[1], a[2]-b[2]);
+function Q(mat,a,b,c,d,ft,B,uv){
+  const ge = new THREE.BufferGeometry(); let su = 1, sv = 1;
+  if(Array.isArray(ft)){ su = ft[0] ? dist(a,b)/ft[0] : 1; sv = ft[1] ? dist(a,d)/ft[1] : 1; } else if(ft){ su = dist(a,b)/ft; sv = dist(a,d)/ft; }
+  ge.setAttribute('position', new THREE.Float32BufferAttribute([...a,...b,...c,...d],3));
+  ge.setAttribute('uv', new THREE.Float32BufferAttribute(uv || [0,0,su,0,su,sv,0,sv],2)); ge.setIndex([0,1,2,0,2,3]); ge.computeVertexNormals();
+  const m = new THREE.Mesh(ge, mat); if(B) m.applyMatrix4(B); root.add(m); return m;
+}
+const wz = (mat,x0,x1,y0,y1,z,ft,B,face=1) => face>0 ? Q(mat,[x0,y0,z],[x1,y0,z],[x1,y1,z],[x0,y1,z],ft,B) : Q(mat,[x1,y0,z],[x0,y0,z],[x0,y1,z],[x1,y1,z],ft,B);
+const wx = (mat,x,z0,z1,y0,y1,face,ft) => face>0 ? Q(mat,[x,y0,z1],[x,y0,z0],[x,y1,z0],[x,y1,z1],ft) : Q(mat,[x,y0,z0],[x,y0,z1],[x,y1,z1],[x,y1,z0],ft);
+const fl = (mat,x0,x1,z0,z1,y,ft,B) => Q(mat,[x0,y,z1],[x1,y,z1],[x1,y,z0],[x0,y,z0],ft,B);
+/* wall-local frames: local +x along the wall, +y up, +z into the room */
+function wallB(wall,pos,y0=0){ const {W,D} = G;
+  return wall==='C' ? mat4(pos,y0,0,0) : wall==='B' ? mat4(pos,y0,D,Math.PI) : wall==='L' ? mat4(-W/2,y0,pos,Math.PI/2) : mat4(W/2,y0,pos,-Math.PI/2); }
+/* arches */
+function archPath(p,w,hs,kind,rise){ p.moveTo(-w/2,0); p.lineTo(-w/2,hs);
+  if(kind==='gothic'){ p.quadraticCurveTo(-w/2,hs+rise*0.62,0,hs+rise); p.quadraticCurveTo(w/2,hs+rise*0.62,w/2,hs); } else p.absarc(0,hs,w/2,Math.PI,0,true);
+  p.lineTo(w/2,0); p.lineTo(-w/2,0); return p; }
+const archRise = (w,kind,max=99) => Math.min(max, kind==='gothic' ? w*0.72 : w/2);
+function archFrameGeo(w,hs,kind,rise,t=0.35,depth=0.22){ const k = kind==='gothic' ? 1 : 0;
+  const o = archPath(new THREE.Shape(), w+2*t, hs, kind, rise+t*(k?1.3:1)); o.holes.push(archPath(new THREE.Path(), w, hs, kind, rise));
+  return new THREE.ExtrudeGeometry(o, {depth, bevelEnabled:false, curveSegments:10}); }
+function archHeadGeo(w,hs,kind,rise,full=false){ const sh2 = new THREE.Shape();
+  if(full) archPath(sh2,w,hs,kind,rise); else { sh2.moveTo(-w/2,hs); if(kind==='gothic'){ sh2.quadraticCurveTo(-w/2,hs+rise*0.62,0,hs+rise); sh2.quadraticCurveTo(w/2,hs+rise*0.62,w/2,hs); } else sh2.absarc(0,hs,w/2,Math.PI,0,true); sh2.lineTo(-w/2,hs); }
+  return uv01(new THREE.ShapeGeometry(sh2, 10)); }
+function uv01(ge){ ge.computeBoundingBox(); const b = ge.boundingBox, uv = ge.attributes.uv, pos = ge.attributes.position;
+  for(let i=0;i<uv.count;i++) uv.setXY(i, (pos.getX(i)-b.min.x)/(b.max.x-b.min.x), (pos.getY(i)-b.min.y)/(b.max.y-b.min.y)); return ge; }
+
+function clearRoot(){ if(!root) return; scene.remove(root);
+  root.traverse(o => { if(o.geometry && o.geometry !== UNIT && o.geometry !== SPH) o.geometry.dispose(); if(o.isInstancedMesh) o.dispose(); if(o.isLight && o.dispose) o.dispose(); }); root = null; }
+
+function build(){
+  clearRoot(); root = new THREE.Group(); scene.add(root); fans = []; flames = [];
+  ST = view.before ? ASIS : S; G = geo(ST);
+  buildShell(); buildSideWalls(); buildChancelWall(); buildChancel(); buildCeilingItems(); buildSeating(); buildFurnishings(); buildRear(); buildMusic(); buildLights();
+  if(view.mode==='outside') buildExterior();
+  flushIB();
+  scene.background = new THREE.Color(view.mode==='outside' ? '#a9c3da' : '#0d0b09');
+}
+
+/* ---------------- room shell: floors, walls, ceiling, cove ---------------- */
+function wallMats(){ const s = ST, base = PAINTS[s.wallPaint];
+  const clad = k => k==='stone' ? [M('#ffffff',{map:'stone',r:.95}),8] : [M('#ffffff',{map:'lime',r:.8}),8];
+  const side = s.clad.endsWith('All') ? clad(s.clad.slice(0,-3)) : [M(base,{r:.95}),0];
+  let ch;
+  if(s.clad!=='none') ch = clad(s.clad.replace(/Ch|All/,''));
+  else if(s.chancelPaint==='same') ch = [M(base,{r:.95}),0];
+  else if(s.chancelPaint==='diaper') ch = [M('#ffffff',{map:'diaper:#6a1f1f',r:.9}),7];
+  else ch = [M(PAINTS[s.chancelPaint],{r:.95}),0];
+  return {side, ch}; }
+function gableGeo(ft){ const {W,wallH,ridgeH} = G, s2 = new THREE.Shape(); s2.moveTo(-W/2,0); s2.lineTo(W/2,0); s2.lineTo(W/2,wallH); s2.lineTo(0,ridgeH); s2.lineTo(-W/2,wallH); s2.closePath();
+  const ge = new THREE.ShapeGeometry(s2); if(ft){ const uv = ge.attributes.uv; for(let i=0;i<uv.count;i++) uv.setXY(i, uv.getX(i)/ft, uv.getY(i)/ft); } return ge; }
+function buildShell(){
+  const {W,D,wallH,ridgeH,rise} = G, s = ST;
+  const fm = f => M('#ffffff', {map:f.tex, r:f.r});
+  const fs = s.floorSeat==='asis' ? FLOORS.seatAsis : FLOORS[s.floorSeat];
+  fl(fm(fs), -W/2, W/2, 0, D, 0, fs.ft);
+  const entry = s.entryFloor!=='asis', at = aisleType(s);
+  if(at!=='asis' && s.floorAisle!=='same'){ const fa = FLOORS[at]; fl(fm(fa), -G.aisle/2, G.aisle/2, G.zStep, D-(entry?G.nD:0), 0.012, at==='runner' ? [0,G.aisle] : fa.ft); }
+  if(entry){ const fe = FLOORS[s.entryFloor], hw = (G.narthexOn ? W : Math.min(W,14))/2; fl(fm(fe), -hw, hw, G.zNarthex, D, 0.016, fe.ft); }
+  // walls
+  const {side, ch} = wallMats();
+  wx(side[0], -W/2, 0, D, 0, wallH, 1, side[1]); wx(side[0], W/2, 0, D, 0, wallH, -1, side[1]);
+  sm(gableGeo(ch[1]), ch[0]); const rear = sm(gableGeo(side[1]), side[0], 0,0,D); rear.rotation.y = Math.PI;
+  // wainscot
+  if(s.wainscot!=='none'){ const h = +s.wainscot, pm = M('#ffffff',{map:'panel:#8a5c30',r:.55}), cap = wood(DKOAK);
+    wx(pm, -W/2+0.05, 0, D, 0, h, 1, [h,h]); wx(pm, W/2-0.05, 0, D, 0, h, -1, [h,h]); wz(pm, -W/2, W/2, 0, h, D-0.05, [h,h], null, -1);
+    ib(cap, 0.22,0.14,D, -W/2+0.12,h,D/2); ib(cap, 0.22,0.14,D, W/2-0.12,h,D/2); ib(cap, W,0.14,0.22, 0,h,D-0.12); }
+  // gilt band / stencil border
+  if(s.stencil!=='none'){ const st = s.stencil==='stencil', bh = st ? 0.9 : 0.28, y0 = wallH-2.5, y1 = y0+bh;
+    const bm = st ? M('#ffffff',{map:'band:'+(s.wallPaint==='oxblood'?'#1d2f5a':'#5e1a1c')+':stencil', r:.7}) : GOLD(), ft = st ? [bh*4,bh] : 0;
+    wx(bm, -W/2+0.07, 0, D, y0, y1, 1, ft); wx(bm, W/2-0.07, 0, D, y0, y1, -1, ft); wz(bm, -W/2, W/2, y0, y1, D-0.07, ft, null, -1);
+    wz(bm, -W/2, -G.gw/2, y0, y1, 0.07, ft); wz(bm, G.gw/2, W/2, y0, y1, 0.07, ft); }
+  if(s.moldings==='yes'){ const mm = wood(OAK);
+    for(const sx of [-1,1]){ ib(mm, 0.45,0.5,D, sx*(W/2-0.22), wallH-0.25, D/2); ib(mm, 0.14,0.6,D, sx*(W/2-0.07), 0.3, D/2); }
+    ib(mm, W,0.6,0.14, 0,0.3,D-0.07); ib(mm, W,0.5,0.4, 0,wallH-0.25,D-0.2); ib(mm, W,0.5,0.3, 0,wallH-0.25,0.15); }
+  // ceiling
+  const cf = s.ceilFinish, cm = cf==='asis' ? [M('#ffffff',{map:'popcorn',r:1}),6] : cf==='smooth' ? [M('#f3eee1',{r:.9}),0] : cf==='tg' ? [M('#ffffff',{map:'tg:#8f6a42',r:.9}),4] : [M('#ffffff',{map:'coffer',r:.7}),8];
+  Q(cm[0], [-W/2,wallH,0],[0,ridgeH,0],[0,ridgeH,D],[-W/2,wallH,D], cm[1]);
+  Q(cm[0], [W/2,wallH,D],[0,ridgeH,D],[0,ridgeH,0],[W/2,wallH,0], cm[1]);
+  if(s.heavens==='yes'){ const hm = M('#ffffff',{map:'stars',r:.9,e:'#1a2f7a',ei:.25}), z1 = G.bayL, o = 0.05;
+    Q(hm, [-W/2,wallH-o,0],[0,ridgeH-o,0],[0,ridgeH-o,z1],[-W/2,wallH-o,z1], 10); Q(hm, [W/2,wallH-o,z1],[0,ridgeH-o,z1],[0,ridgeH-o,0],[W/2,wallH-o,0], 10);
+    ib(GOLD(), W*0.98,0.12,0.12, 0,0,0, mat4(0,0,0)); }
+  // cove beam + uplight wash
+  const cw = wood(COVE);
+  for(const sx of [-1,1]){ ib(cw, 0.16,0.9,D, sx*(W/2-1.05), wallH-0.75, D/2); ib(cw, 1.05,0.12,D, sx*(W/2-0.52), wallH-1.2, D/2); }
+  if(s.cove!=='remove'){ const warm = s.cove==='warm', dimF = s.scene==='asis' ? 1 : s.scene==='warm' ? .6 : .22;
+    const gm = MB(warm ? '#ffc078' : '#fff0c4', {map:'glow', add:1, op:(warm?.4:.8)*dimF}), sm2 = MB(warm ? '#ffbe70' : '#fff3cf', {op:1});
+    const t = Math.min(0.5, 9/G.slopeL), o = 0.04;
+    for(const sx of [-1,1]){ const e = sx*W/2, u = sx*W/2*(1-t), yu = wallH+t*rise-o;
+      if(sx<0) Q(gm, [e,wallH-o,D],[e,wallH-o,0],[u,yu,0],[u,yu,D]); else Q(gm, [e,wallH-o,0],[e,wallH-o,D],[u,yu,D],[u,yu,0]);
+      ib(sm2, 0.05,0.55,D, sx*(W/2-0.04), wallH-0.3, D/2); } }
+}
+
+/* ---------------- side walls: openings, boards, plaques ---------------- */
+function buildSideWalls(){
+  const {W,D,wallH} = G, s = ST, trim = wood(TRIM), lanc = s.openings==='lancet';
+  const outside = MB('#ffffff', {map:'outside'}), stained = MB('#ffffff', {map:'sideglass'});
+  const frame = (B,w,h,y,mat,t=0.32) => { ib(mat, t,h+t,0.14, -w/2-t/2, y+h/2+t/2, 0.07, B); ib(mat, t,h+t,0.14, w/2+t/2, y+h/2+t/2, 0.07, B); ib(mat, w+2*t,t,0.16, 0, y+h+t/2, 0.08, B); if(y>0) ib(mat, w+2*t,t,0.2, 0, y-t/2, 0.1, B); };
+  const lancet = (B,w,h,y,infill) => { const r = archRise(w,'gothic', wallH-0.8-(y+h)); if(r<0.6) return; const t = 0.3;
+    sm(archFrameGeo(w,0.01,'gothic',r,t,0.2), wood(DKOAK), 0,y+h+0.02,0.02, B); sm(archHeadGeo(w,0,'gothic',r), infill, 0,y+h+0.02,0.06, B); };
+  const each = (wall, list) => list.forEach(o => { const B = wallB(wall, o.z, 0), w = o.w, h = o.h, y = o.y;
+    if(o.k==='door'){ // left side door (toward sacristy / wing)
+      if(s.sacDoors==='asis'){ frame(B,w,h,y,trim); wz(M('#2b2521',{r:1}), -w/2,w/2,y,y+h,0.05,0,B); }
+      else archDoor(B,w,h,s.sacDoors); }
+    else if(o.k==='win'){ frame(B,w,h,y,trim); wz(M('#b9c0bd',{r:.15,m:.3}), -w/2,w/2,y,y+h,0.05,0,B); ib(trim, 0.12,h,0.1, 0,y+h/2,0.07,B); if(lanc) lancet(B,w,h,y,wood(OAK)); }
+    else if(o.k==='door2'){ frame(B,w,h,y,trim); for(const sx of [-1,1]){ ib(wood('#7b4f2e'), w/2-0.05,h,0.1, sx*w/4,h/2,0.06,B); ib(BRASS(), 0.08,0.5,0.1, sx*0.25,3.3,0.14,B); } if(lanc) lancet(B,w,h,y,wood(OAK)); }
+    else if(o.k==='exit'){ frame(B,w,h,y,trim); ib(M('#e6dfcd',{r:.7}), w,h,0.1, 0,h/2,0.06,B); wz(s.sideGlass==='yes'?stained:outside, -w/2+0.5,w/2-0.5,3.4,h-0.5,0.12,0,B); ib(BRASS(), 0.5,0.08,0.12, w/2-0.6,3.2,0.14,B);
+      exitSign(B, h+1.05); if(lanc) lancet(B,w,h,y,wood(OAK)); }
+    else if(o.k==='glass'){ frame(B,w,h,y,trim,0.4); const n = Math.max(2, Math.round(w/2.6)), lw = w/n, gm = s.sideGlass==='yes' ? stained : outside;
+      for(let i=0;i<n;i++){ const x = -w/2+(i+.5)*lw; ib(WHITE(), lw-0.06,h,0.08, x,h/2,0.05,B); wz(gm, x-lw/2+0.3, x+lw/2-0.3, 0.7, h-0.35, 0.1, 0, B); ib(trim, 0.1,h,0.14, x-lw/2,h/2,0.07,B);
+        if(lanc) lancet(B, lw-0.3, h, y, s.sideGlass==='yes' ? stained : wood(OAK)); } }
+  });
+  each('L', G.openL); each('R', G.openR);
+  // hymn boards
+  const imp = s.hymnBoards==='improved';
+  for(const [wall,z] of [['L',D*0.23],['R',D*0.27]]){ const B = wallB(wall, z, imp ? 4.0 : 4.8), w = imp ? 1.9 : 1.15, hs = imp ? 3.3 : 2.5, r = w*0.75;
+    sm(archHeadGeo(w,hs,'gothic',r,true), M('#ffffff',{map:'hymnboard:'+(imp?'new':'old'), r:.6}), 0,0,0.1, B);
+    if(imp) sm(archFrameGeo(w,hs,'gothic',r,0.16,0.16), wood(DKOAK), 0,0,0.02, B); else ib(wood('#b98a4e'), w,0.1,0.1, 0,0,0.05,B); }
+  // rear wall: entrance doors
+  { const B = wallB('B', 0, 0), w = 6, h = 7; frame(B,w,h,0,trim,0.4);
+    for(const sx of [-1,1]){ ib(wood('#7b4f2e'), w/2-0.04,h,0.1, sx*w/4,h/2,0.06,B); wz(outside, sx*w/4-0.9, sx*w/4+0.9, 3.2, 6.3, 0.12, 0, B); ib(BRASS(), 0.08,0.7,0.1, sx*0.3,3.4,0.15,B); }
+    exitSign(B, h+1.1);
+    if(s.stoup==='yes'){ const b2 = wallB('B', -4.4, 0); cy(M('#d8ceb6',{map:'lime',r:.7}), 0.55,0.3,0.45, 0,3.5,0.5, b2, 8); cy(M('#3a6ea0',{r:.1,m:.3}), 0.46,0.46,0.03, 0,3.72,0.5, b2, 12); ib(M('#d8ceb6',{r:.8}), 0.5,0.9,0.3, 0,3.0,0.15,b2); ib(GOLD(), 0.1,0.7,0.05, 0,4.9,0.04,b2); ib(GOLD(), 0.42,0.1,0.05, 0,5.05,0.04,b2); }
+    if(s.roseWin==='yes'){ const r = G.roseR, y = wallH + G.rise*0.42; sm(new THREE.CircleGeometry(r,40), MB('#ffffff',{map:'rosewin'}), 0,y,0.06, B);
+      sm(new THREE.TorusGeometry(r+0.12,0.22,8,40), M('#d8ceb6',{map:'lime',r:.8}), 0,y,0.08, B); } }
+  // stations of the cross
+  if(s.stations==='yes') for(let i=0;i<14;i++){ const wall = i<7 ? 'L' : 'R', k = i<7 ? i : 13-i, z = D*0.12+k*(D*0.8)/6, B = wallB(wall, z, 7.05);
+    wz(M('#ffffff',{map:'station:'+i,r:.7}), -0.65,0.65,0,1.6,0.08,0,B); ib(GOLD(), 0.08,0.4,0.05, 0,1.85,0.06,B); ib(GOLD(), 0.26,0.08,0.05, 0,1.9,0.06,B); }
+  // consecration crosses
+  if(s.consCross==='yes'){ const put = B => { cy(M('#7a1a1e',{r:.6}), 0.42,0.42,0.04, 0,0,0, B.clone().multiply(new THREE.Matrix4().makeRotationX(Math.PI/2)), 20); ib(GOLD(), 0.1,0.6,0.05, 0,0,0.05,B); ib(GOLD(), 0.6,0.1,0.05, 0,0,0.05,B); };
+    for(let i=0;i<5;i++){ const z = D*0.2+i*D*0.15; put(wallB('L',z+1.8,5.9)); put(wallB('R',z+1.8,5.9)); } put(wallB('B',-W*0.3,5.9)); put(wallB('B',W*0.3,5.9)); }
+  // icons flanking the chancel, aumbry
+  if(s.chancelArt==='icons') [['L',3],['R',3]].forEach(([wl,z],i) => { const B = wallB(wl,z,4.6); wz(M('#ffffff',{map:'icon:'+i,r:.45,m:.2}), -1.1,1.1,0,2.9,0.1,0,B); ib(GOLD(), 2.4,0.1,0.14, 0,-0.05,0.07,B); });
+  if(s.aumbry==='yes'){ const B = wallB('L', 6.4, 3.9), r = 0.9; sm(archFrameGeo(1.5,1.7,'gothic',r,0.2,0.2), wood(DKOAK), 0,0,0.02,B); sm(archHeadGeo(1.5,1.7,'gothic',r,true), M('#c9a44a',{m:.35,r:.4,e:'#3a2a08',ei:.5}), 0,0,0.08,B);
+    ib(M('#7a1a1e'), 0.1,0.9,0.04, 0,1.1,0.1,B); ib(M('#7a1a1e'), 0.5,0.1,0.04, 0,1.3,0.1,B); ib(wood(DKOAK), 1.9,0.12,0.5, 0,-0.06,0.25,B); sp(MB('#fff3d8'), 0.11, 0,3.2,0.35, B); ib(BRASS(), 0.05,0.05,0.35, 0,3.2,0.17,B); }
+  // flat panels on side walls
+  if(s.screens==='flat') for(const wl of ['L','R']){ const B = wallB(wl, Math.max(G.zStep+2, G.zFront-5), 6); const tilt = new THREE.Matrix4().makeRotationY(wl==='L' ? -0.38 : 0.38); const B2 = B.clone().multiply(new THREE.Matrix4().makeTranslation(0,0,0.5)).multiply(tilt);
+    ib(BLACK(), 5.6,3.2,0.14, 0,1.6,0,B2); wz(M('#0b0d12',{r:.15,m:.4}), -2.7,2.7,0.1,3.1,0.08,0,B2); ib(BLACK(), 0.3,0.3,0.5, 0,1.6,-0.25,B2); }
+}
+function exitSign(B, y){ const low = ST.exitSign==='low';
+  if(!low){ ib(M('#e8e4da'), 1.15,0.62,0.16, 0,y,0.1,B); wz(MB('#ffffff',{map:'sign:EXIT:#f4f1ea:#d0181c'}), -0.5,0.5,y-0.24,y+0.24,0.19,0,B); }
+  else { ib(M('#2a2a2a',{m:.3,r:.4}), 0.9,0.05,0.07, 0,y+0.02,0.05,B); wz(MB('#ffffff',{map:'sign:EXIT:#103a22:#7dff9d',op:.9}), -0.42,0.42,y-0.24,y,0.05,0,B); } }
+function archDoor(B,w,h,kind){ const r = archRise(w+0.3,kind,2.3), dm = M('#ffffff',{map:'doorpanel:'+OAK,r:.5});
+  ib(dm, w,h,0.12, 0,h/2,0.07,B); sm(archFrameGeo(w,h,kind,r,0.4,0.26), wood(DKOAK), 0,0,0.02,B); sm(archHeadGeo(w,h,kind,r), wood(OAK), 0,0,0.06,B);
+  ib(IRON(), 0.12,0.6,0.08, w/2-0.4,3.3,0.16,B); ib(IRON(), 0.9,0.07,0.04, -w/2+0.5,1.4,0.14,B); ib(IRON(), 0.9,0.07,0.04, -w/2+0.5,5.4,0.14,B); ib(GOLD(), 0.07,0.34,0.04, 0,h+r*0.42,0.09,B); ib(GOLD(), 0.24,0.07,0.04, 0,h+r*0.45,0.09,B); }
+
+/* ---------------- chancel (east) wall: posts, glass, cross, doors ---------------- */
+function crucifixCorpus(B, yArm, sc=1){ const iv = M('#e9dcc4',{r:.6});
+  ib(iv, 0.5*sc,1.5*sc,0.26*sc, 0,yArm-0.95*sc,0.3,B); ib(iv, 0.36*sc,1.5*sc,0.24*sc, 0,yArm-2.35*sc,0.3,B); ib(WHITE(), 0.56*sc,0.5*sc,0.3*sc, 0,yArm-1.75*sc,0.3,B);
+  sp(iv, 0.23*sc, 0,yArm+0.05*sc,0.34, B); ib(iv, 1.35*sc,0.2*sc,0.2*sc, -0.85*sc,yArm-0.05*sc,0.3,B,0,-0.28); ib(iv, 1.35*sc,0.2*sc,0.2*sc, 0.85*sc,yArm-0.05*sc,0.3,B,0,0.28);
+  ib(M('#efe6cc'), 0.7*sc,0.28*sc,0.05, 0,yArm+0.85*sc,0.2,B); sm(new THREE.TorusGeometry(0.33*sc,0.035,6,20), GOLD(), 0,yArm+0.08*sc,0.2, B); }
+function buildChancelWall(){
+  const {W,gw,pt,sill,ridgeH,rise,ph} = G, s = ST, pm = wood(POST), cY = G.ceilY;
+  const post = (x,y0,y1,t=pt) => ib(pm, t,y1-y0,0.5, x,(y0+y1)/2,0.25);
+  for(const sx of [-1,1]){ post(sx*(gw/2-pt/2), 0, cY(gw/2-pt/2)-0.2); post(sx*gw/4, 0, cY(gw/4)-0.2); post(sx*G.outerPostX, 0, cY(G.outerPostX)-0.05);
+    const L = Math.hypot(gw/2, cY(0)-cY(gw/2)), a = Math.atan2(rise, W/2); ib(pm, L,0.5,0.5, sx*gw/4, (cY(0)+cY(gw/2))/2-0.3, 0.25, null, 0, -sx*a); }
+  post(0, sill, ridgeH-0.3, 0.4); ib(pm, gw,0.5,0.56, 0,sill-0.25,0.28);
+  // stained glass
+  const set = s.glass, bright = set==='asis' ? '#d8d8d8' : '#ffffff';
+  G.panels.forEach((p,i) => { const hm = Math.max(p.t0,p.t1)-sill;
+    Q(MB(bright,{map:`glass:${set}:${i}`}), [p.x0,sill,0.12],[p.x1,sill,0.12],[p.x1,p.t1,0.12],[p.x0,p.t0,0.12], null, null, [0,0,1,0,1,(p.t1-sill)/hm,0,(p.t0-sill)/hm]); });
+  // mural / banners
+  const yBan = sill-0.75, banBot = Math.max(ph+3.3, yBan-6.6);
+  if(s.chancelArt==='mural') wz(M('#ffffff',{map:'mural',r:.8}), -gw/2+pt, gw/2-pt, ph, sill-0.5, 0.04);
+  else if(s.textiles!=='none'){ const bw = (gw/4-pt)*0.82; [-1,1].forEach((sx,i) => { const x = sx*gw*3/8, emb = s.textiles==='embroidered';
+      wz(M('#ffffff',{map:`banner:${emb?'emb':'vinyl'}:${s.season}:${i}`, r:emb?.9:.5, side:1}), x-bw/2, x+bw/2, banBot, yBan, 0.22); ib(emb?BRASS():WHITE(), bw+0.3,0.08,0.08, x,yBan+0.03,0.22); }); }
+  // behind the altar: dossal / tester / reredos
+  const bw2 = gw/2-pt-0.15, top = sill-0.55;
+  let zc = 0.2;
+  if(s.altarBack==='dossal' || s.altarBack==='tester'){ zc = 0.42; const col = s.textiles==='embroidered' ? SEASONS[s.season][0] : '#7a1a1e', gold = s.season==='white'&&s.textiles==='embroidered' ? '#b8922e' : '#d7b24a';
+    wz(M('#ffffff',{map:`damask:${col}:${gold}`, r:.95}), -bw2/2, bw2/2, ph, top, 0.3, [bw2/1.5, 6]); ib(BRASS(), bw2+0.4,0.1,0.1, 0,top+0.05,0.32);
+    for(const sx of [-1,1]){ ib(wood(DKOAK), 0.3,top-ph,0.3, sx*(bw2/2+0.1),(top+ph)/2,0.4); sp(GOLD(), 0.2, sx*(bw2/2+0.1), top+0.2, 0.4); wz(M('#ffffff',{map:'damask:#d7b24a:#fff3c0',r:.9}), sx*bw2/2-0.5*(sx>0?1:-0), sx*bw2/2+(sx>0?0:0.5), ph, top, 0.33, [1,6]); }
+    if(s.altarBack==='tester'){ const tm = M('#ffffff',{map:'damask:#7a1a1e:#d7b24a',r:.9}); ib(wood(DKOAK), bw2+0.9,0.3,4.2, 0,top+0.4,2.1); ib(tm, bw2+0.9,0.9,0.08, 0,top-0.15,4.2); ib(tm, 0.08,0.9,4.2, -(bw2+0.9)/2,top-0.15,2.1); ib(tm, 0.08,0.9,4.2, (bw2+0.9)/2,top-0.15,2.1);
+      fl(M('#ffffff',{map:'stars',r:.9,side:1}), -bw2/2-0.4, bw2/2+0.4, 0.1, 4.1, top+0.22, 5); ib(GOLD(), bw2+1,0.1,0.12, 0,top+0.58,4.2); } }
+  if(s.altarBack==='reredos'){ zc = 0.62; const om = M('#ffffff',{map:'panel:#6b4426',r:.5}), dk = wood(DKOAK), n = 5, pw2 = bw2/n;
+    ib(dk, bw2+0.3,top-ph,0.4, 0,(top+ph)/2,0.2); ib(dk, bw2+0.7,0.3,0.7, 0,ph+3.4,0.35);
+    for(let i=0;i<n;i++){ const x = -bw2/2+(i+.5)*pw2, mid = i===2, hs = (mid ? top-ph-5.1 : top-ph-5.6), r = pw2*0.7, B = mat4(x,ph+3.55,0.4);
+      sm(archFrameGeo(pw2-0.5,hs-3.55+3,'gothic',r,0.16,0.14), wood(OAK), 0,0,0.02,B); sm(archHeadGeo(pw2-0.5,hs-0.55,'gothic',r,true), mid ? M('#7a1a1e',{r:.8}) : M('#ffffff',{map:'diaper:#1d2f5a',r:.7}), 0,0,0.03,B);
+      if(!mid) sm(new THREE.ConeGeometry(0.16,0.9,4), GOLD(), x, top+0.2+(i%4?0:-.0), 0.4); ib(dk, 0.16,top-ph-3.4,0.5, x-pw2/2,(top+ph+3.4)/2,0.3); }
+    ib(dk, 0.16,top-ph-3.4,0.5, bw2/2,(top+ph+3.4)/2,0.3); wz(om, -bw2/2, bw2/2, ph, ph+3.3, 0.42, [bw2/3,3.3]); ib(GOLD(), bw2+0.3,0.12,0.5, 0,top-0.06,0.3);
+    wz(M('#ffffff',{map:'textband:VERBUM DOMINI MANET IN AETERNUM:#3a2414:#e7c979',r:.6}), -bw2/2, bw2/2, top-0.75, top-0.2, 0.43); }
+  // cross or crucifix
+  { const yb = Math.max(ph+3.7, 4.6), yt = sill-0.45, H = yt-yb, ya = yb+H*0.7, cru = s.cross==='crucifix', cm = wood(cru ? DKOAK : '#8a5630'), B = mat4(0,0,zc);
+    if(s.altarBack==='reredos'){ const H2 = Math.min(H,5.2), y0 = yt-0.9-H2; ib(cm, 0.4,H2,0.22, 0,y0+H2/2,0.11,B); ib(cm, H2*0.6,0.4,0.22, 0,y0+H2*0.7,0.11,B); if(cru) crucifixCorpus(B, y0+H2*0.7, H2/6.4); }
+    else { ib(cm, 0.6,H,0.3, 0,yb+H/2,0.15,B); ib(cm, H*0.62,0.6,0.3, 0,ya,0.15,B); if(cru) crucifixCorpus(B, ya, H/6.4); } }
+  // sanctuary lamp
+  { const z = 2.3, y = sill-1.0; cy(BRASS(), 0.02,0.02,ridgeH-y, 0,(ridgeH+y)/2,z, null, 5);
+    if(s.lamp==='asis'){ cy(BRASS(), 0.3,0.3,0.05, 0,y-0.55,z, null, 12); cy(MB('#ff3a22'), 0.13,0.13,0.5, 0,y-0.28,z); }
+    else { cy(BRASS(), 0.5,0.16,0.5, 0,y-0.75,z, null, 12); cy(MB('#ff2a18'), 0.2,0.16,0.62, 0,y-0.2,z); cy(BRASS(), 0.24,0.1,0.25, 0,y+0.22,z); sm(new THREE.TorusGeometry(0.5,0.04,6,20), BRASS(), 0,y-0.5,z).rotation.x = Math.PI/2; sm(new THREE.ConeGeometry(0.14,0.4,8), BRASS(), 0,y-1.2,z).rotation.x = Math.PI; }
+    const L = new THREE.PointLight('#ff4a2a', 6, 12); L.position.set(0,y-0.3,z+0.3); root.add(L); }
+  // sacristy doors
+  for(const sx of [-1,1]){ const y0 = G.floorAt(G.doorX, 0.5), B = wallB('C', sx*G.doorX, y0), w = 3.3, h = 6.8;
+    if(s.sacDoors==='asis'){ ib(wood('#7b4f2e'), w,h,0.1, 0,h/2,0.06,B); ib(wood(TRIM), 0.2,h,0.14, -w/2-0.1,h/2,0.07,B); ib(wood(TRIM), 0.2,h,0.14, w/2+0.1,h/2,0.07,B); ib(wood(TRIM), w+0.4,0.2,0.14, 0,h+0.1,0.07,B); ib(M('#b9b9b0',{m:.3,r:.4}), 0.4,0.07,0.1, -sx*(w/2-0.4),3.2,0.14,B); }
+    else archDoor(B,w,h,s.sacDoors);
+    if(s.bell==='yes' && sx>0){ const b = mat4(G.doorX-2.2, y0+5.3, 0); ib(IRON(), 0.08,0.08,0.6, 0,0.5,0.3,b); cy(BRASS(), 0.1,0.3,0.42, 0,0.2,0.55, b, 12); cy(IRON(), 0.01,0.01,1.6, 0.2,-0.6,0.55, b, 4); } }
+}
+
+/* ---------------- chancel platform and its furnishings ---------------- */
+function candle(B,x,y,z,stickH,candH){ cy(BRASS(), 0.05,0.17,stickH, x,y+stickH/2,z, B, 10); cy(BRASS(), 0.14,0.05,0.08, x,y+stickH,z, B, 10); cy(M('#f3ecd8',{r:.5}), 0.05,0.05,candH, x,y+stickH+candH/2,z, B, 8);
+  const f = sp(MB('#ffd98a'), 0.05, x,y+stickH+candH+0.09,z, B, 2); flames.push(f); }
+function buildChancel(){
+  const {pw,pd,ph,nSteps,W,gw} = G, s = ST;
+  const f = s.floorChancel==='asis' ? FLOORS.chancelAsis : FLOORS[s.floorChancel], top = M('#ffffff',{map:f.tex,r:f.r}), riser = M(f.col,{r:.9});
+  for(let i=0;i<nSteps;i++){ const w = pw+2*i, d = pd+i, h = ph-0.5*i; ib(riser, w,h-0.01,d, 0,(h-0.01)/2,d/2); fl(top, -w/2,w/2,0,d,h+0.004,f.ft); }
+  const east = s.altarPos==='east';
+  if(east){ ib(riser, 9.6,0.5,4.8, 0,ph+0.25,2.4); fl(top, -4.8,4.8,0,4.8,ph+0.504,f.ft); }
+  const aY = ph+(east?0.5:0), aZ = east ? 2.0 : Math.min(pd-3, 4.8), B = mat4(0,aY,aZ), aw = 6.6, ah = 3.3, ad = 2.6;
+  G.altarY = aY; G.altarZ = aZ;
+  // altar
+  if(s.altarType==='asis'){ const pm = wood(PINE); ib(pm, aw,0.25,ad, 0,ah-0.125,0,B); for(const sx of [-1,1]) ib(pm, 0.35,ah-0.25,ad*0.8, sx*(aw/2-0.7),(ah-0.25)/2,0,B); ib(pm, aw-1.4,0.3,0.2, 0,0.9,0,B); }
+  else if(s.altarType==='oak'){ ib(M('#ffffff',{map:'panel:#8a5c30',r:.5}), aw,ah-0.2,ad, 0,(ah-0.2)/2,0,B); ib(wood(DKOAK), aw+0.4,0.2,ad+0.3, 0,ah-0.1,0,B); ib(wood(DKOAK), aw+0.3,0.3,ad+0.2, 0,0.15,0,B); }
+  else { ib(M('#ffffff',{map:'lime',r:.7}), aw-0.4,ah-0.25,ad-0.2, 0,(ah-0.25)/2,0,B); ib(M('#e3dac4',{r:.5}), aw+0.3,0.25,ad+0.3, 0,ah-0.125,0,B); ib(GOLD(), 0.14,1.5,0.04, 0,1.6,ad/2-0.08,B); ib(GOLD(), 0.9,0.14,0.04, 0,1.9,ad/2-0.08,B); }
+  ib(LINEN(), aw+0.12,0.04,ad+0.06, 0,ah+0.02,0,B); for(const sx of [-1,1]) ib(LINEN(), 0.03,1.1,ad+0.02, sx*(aw/2+0.07),ah-0.53,0,B);
+  if(s.frontal==='full'){ wz(M('#ffffff',{map:`parament:${s.season}:full`,r:.95}), -aw/2-0.03, aw/2+0.03, 0.04, ah-0.02, ad/2+0.05, null, B); }
+  else wz(M('#ffffff',{map:`parament:${s.season}`,r:.95}), -1.25,1.25, ah-2.4, ah, ad/2+0.05, null, B);
+  { const c = sm(new THREE.ConeGeometry(0.55,0.95,4), LINEN(), 0,ah+0.5,0.1, B); c.rotateY(Math.PI/4); }   // veiled chalice
+  if(s.candles==='two'){ candle(B,-2.6,ah+0.04,-0.3,1.1,0.9); candle(B,2.6,ah+0.04,-0.3,1.1,0.9); }
+  else { ib(s.altarType==='stone' ? M('#e3dac4',{r:.5}) : wood(s.altarType==='oak'?DKOAK:PINE), aw,0.5,0.75, 0,ah+0.29,-ad/2+0.38,B); for(const x of [1.2,2.0,2.8]) for(const sx of [-1,1]) candle(B,sx*x,ah+0.54,-ad/2+0.38,1.6,1.3);
+    ib(BRASS(), 0.08,1.3,0.08, 0,ah+1.2,-ad/2+0.38,B); ib(BRASS(), 0.6,0.08,0.08, 0,ah+1.5,-ad/2+0.38,B); }
+  // pulpit
+  if(s.pulpit==='asis'){ const P = mat4(Math.min(pw/2-2, gw*0.32), ph, pd-2.3), pm = wood(PINE); ib(pm, 2.6,3.7,1.7, 0,1.85,0,P); ib(pm, 2.9,0.14,2.0, 0,3.85,0,P); ib(pm, 2.9,0.5,0.1, 0,4.1,-0.9,P);
+    wz(M('#ffffff',{map:`parament:${s.season}`,r:.95}), -0.85,0.85,1.5,3.6,0.87,null,P); }
+  else { const P = mat4(pw/2-3.2, ph, pd-3.2), om = M('#ffffff',{map:'panel:#8a5c30',r:.5,side:1}), dk = wood(DKOAK);
+    cy(dk, 0.55,0.9,2.4, 0,1.2,0, P, 8); cy(dk, 2.1,1.2,0.4, 0,2.5,0, P, 8); cy(om, 2.1,2.0,3.1, 0,4.2,0, P, 8, true); cy(dk, 2.2,2.2,0.16, 0,5.75,0, P, 8);
+    ib(dk, 1.6,0.12,1.0, 0,6.05,1.5,P); for(let i=0;i<5;i++) ib(wood(OAK), 2.0,0.5*(i+1),0.9, 0,0.25*(i+1),-2.6-(4-i)*0.9+1.4,P);
+    ib(dk, 0.5,9.4,0.3, 0,6.6,-2.05,P); cy(dk, 2.5,2.5,0.3, 0,11.0,-0.2, P, 8); cy(GOLD(), 2.55,2.55,0.08, 0,10.82,-0.2, P, 8); sm(new THREE.ConeGeometry(0.5,1.0,8), dk, 0,11.6,-0.2, P); ib(GOLD(), 0.08,0.7,0.08, 0,12.4,-0.2,P); ib(GOLD(), 0.4,0.08,0.08, 0,12.5,-0.2,P);
+    wz(M('#ffffff',{map:`parament:${s.season}`,r:.95}), -0.7,0.7,4.0,5.6,2.13,null,P); }
+  if(s.lectern==='yes'){ const P = mat4(-(pw/2-3.2), ph, pd-2.4), dk = wood(DKOAK); ib(dk, 1.6,0.25,1.4, 0,0.12,0,P); ib(wood(OAK), 0.5,3.5,0.5, 0,1.9,0,P); ib(dk, 2.0,0.14,1.5, 0,3.75,0,P); ib(dk, 2.0,0.6,0.1, 0,4.0,-0.7,P); ib(M('#7a1220'), 1.1,0.12,0.8, 0,3.9,0.05,P); }
+  if(s.credence==='yes'){ const P = mat4(gw*0.375, ph, 1.3), om = wood(OAK); ib(om, 2.6,0.14,1.3, 0,3,0,P); for(const sx of [-1,1]) ib(om, 0.16,3,1.1, sx*1.1,1.5,0,P); ib(LINEN(), 2.7,0.04,1.35, 0,3.09,0,P); cy(GOLD(), 0.14,0.08,0.5, -0.5,3.36,0, P, 10); cy(M('#c9d6e0',{r:.1,m:.2,op:.7}), 0.1,0.13,0.55, 0.4,3.38,0, P, 8); }
+  if(s.sedilia==='yes'){ const P = mat4(pw/2-1.3, ph, Math.min(pd-5.5, 6), -Math.PI/2), om = M('#ffffff',{map:'panel:#8a5c30',r:.5}), dk = wood(DKOAK);
+    ib(om, 6.6,5.4,0.25, 0,2.7,-0.9,P); ib(dk, 6.6,0.2,1.7, 0,1.5,0,P); ib(dk, 6.6,1.4,0.2, 0,0.7,0.75,P); for(const x of [-3.3,-1.1,1.1,3.3]) ib(dk, 0.2,2.6,1.8, x,1.3,0,P); ib(M('#6e1f26'), 6.2,0.18,1.5, 0,1.68,0,P); ib(dk, 7,0.3,0.6, 0,5.5,-0.8,P); }
+  else { const x = G.outerPostX+1.9, P = mat4(x, G.floorAt(x,1.6), 1.5), pm = wood(PINE); ib(pm, 1.9,0.15,1.7, 0,1.5,0,P); ib(pm, 1.9,3.4,0.15, 0,3.2,-0.8,P); for(const sx of [-1,1]){ ib(pm, 0.15,2.3,1.7, sx*0.95,1.15,0,P); } }
+  // communion rail
+  if(s.rail!=='none'){ const z = pd-0.45, oak = s.rail==='oak', len = pw/2-2.3, cap = wood(OAK), dk = wood(DKOAK);
+    for(const sx of [-1,1]){ const xc = sx*(2+len/2); ib(cap, len,0.2,0.5, xc,ph+2.4,z); ib(oak?cap:IRON(), len,0.12,0.16, xc,ph+0.3,z);
+      for(let x=0.35; x<len; x+=(oak?0.7:0.42)) ib(oak?cap:IRON(), oak?0.14:0.05, 2.05, oak?0.14:0.05, sx*(2+x), ph+1.32, z);
+      if(!oak) ib(IRON(), len,0.05,0.05, xc,ph+1.5,z);
+      ib(dk, 0.42,2.75,0.42, sx*2,ph+1.37,z); ib(dk, 0.42,2.75,0.42, sx*(2+len),ph+1.37,z); sp(GOLD(), 0.16, sx*2, ph+2.85, z);
+      ib(M('#6e1f26',{r:1}), len,0.22,0.85, xc, G.floorAt(xc,pd+0.5)+0.11, pd+0.52); } }
+  // chancel opening
+  const xp = Math.min(W/2-1.5, pw/2+G.stepsD+0.9), zA = G.zStep+0.5, cY = G.ceilY;
+  if(s.chancelArch==='arch'){ const w = 2*xp, hs = Math.min(G.wallH-1.5, 8), r = Math.min(w*0.72, G.ridgeH-1.3-hs), sh2 = new THREE.Shape();
+    sh2.moveTo(-W/2,0); sh2.lineTo(W/2,0); sh2.lineTo(W/2,G.wallH); sh2.lineTo(0,G.ridgeH); sh2.lineTo(-W/2,G.wallH); sh2.closePath(); sh2.holes.push(archPath(new THREE.Path(), w, hs, 'gothic', r));
+    const wm = wallMats().side; sm(new THREE.ExtrudeGeometry(sh2,{depth:0.9,bevelEnabled:false,curveSegments:16}), wm[1] ? M(ST.clad.startsWith('stone')?'#a79d8b':'#d8ceb6',{r:.9}) : wm[0], 0,0,zA);
+    sm(archFrameGeo(w,hs,'gothic',r,0.55,1.1), M('#ffffff',{map:'lime',r:.8}), 0,0,zA-0.1); }
+  if(s.chancelArch==='proscenium'){ const dk = wood(DKOAK), yb = cY(xp)-1.3; for(const sx of [-1,1]){ ib(dk, 1,cY(xp),1, sx*xp,cY(xp)/2,zA); ib(dk, 0.5,3.6,0.6, sx*(xp-1.5),yb-1.5,zA,null,0,sx*0.78); ib(wood(OAK), 1.4,0.5,1.4, sx*xp,0.25,zA); }
+    ib(dk, 2*xp+1,1.2,1, 0,yb,zA); wz(M('#ffffff',{map:'textband:VERBUM DOMINI MANET IN AETERNUM:#3a2414:#e7c979',r:.6}), -xp*0.8, xp*0.8, yb-0.36, yb+0.36, zA+0.52); ib(GOLD(), 2*xp+1,0.1,1.06, 0,yb+0.65,zA); }
+  if(s.rood==='yes'){ const dk = wood(DKOAK), z = G.zStep+0.2+(s.chancelArch!=='none'?1.3:0), yb = Math.min(11.2, cY(xp)-1.6), B2 = mat4(0,yb+0.45,z);
+    for(const sx of [-1,1]){ ib(dk, 0.7,yb,0.7, sx*xp,yb/2,z); ib(dk, 0.35,2.6,0.4, sx*(xp-1.1),yb-1.2,z,null,0,sx*0.78); }
+    ib(dk, 2*xp+0.7,0.9,0.7, 0,yb,z); wz(M('#ffffff',{map:'textband:VERBUM DOMINI MANET IN AETERNUM:#3a2414:#e7c979',r:.6}), -xp*0.75, xp*0.75, yb-0.3, yb+0.3, z+0.36);
+    ib(dk, 0.36,4.6,0.24, 0,2.3,0,B2); ib(dk, 2.9,0.36,0.24, 0,3.3,0,B2); crucifixCorpus(mat4(0,yb+0.45,z-0.12), 3.3, 0.68);
+    for(const [sx,col] of [[-1,'#3a4f86'],[1,'#7a2a2e']]){ cy(M(col,{r:.8}), 0.2,0.38,2.1, sx*3,1.05,0, B2, 8); sp(M('#e3b98f'), 0.22, sx*3,2.35,0,B2); sm(new THREE.TorusGeometry(0.32,0.03,6,18), GOLD(), sx*3,2.38,-0.1,B2); } }
+  // flags
+  const flag = (x,z,kind) => { const y = G.floorAt(x,z), P = mat4(x,y,z); cy(BRASS(), 0.45,0.55,0.25, 0,0.12,0, P, 12); cy(BRASS(), 0.05,0.05,8, 0,4,0, P, 6); sp(GOLD(), 0.14, 0,8.1,0, P); ib(M('#ffffff',{map:'flag:'+kind,r:.9}), 1.4,3.8,0.07, 0.55,5.9,0.12, P, 0.35); };
+  if(s.flags==='asis'){ flag(-(G.outerPostX+3.2), s.organ!=='asis'&&s.choir!=='rear' ? 4.2 : 2.2, 'us'); flag(W/2-3, 2.2, 'chr'); }
+  else if(s.flags==='rear'){ flag(-(W/2-2.5), G.D-2, 'us'); flag(W/2-2.5, G.D-2, 'chr'); }
+}
+
+/* ---------------- ceiling-mounted items, trusses, bays ---------------- */
+function buildCeilingItems(){
+  const {W,D,ridgeH,wallH,gw} = G, s = ST, cY = G.ceilY;
+  const ceilCol = s.ceilFinish==='tg' ? '#9a6a38' : s.ceilFinish==='coffer' ? '#e6dcc4' : '#f0ece2';
+  if(s.fans==='keep') for(const z of G.fanZ){ cy(WHITE(), 0.05,0.05,1.2, 0,ridgeH-0.6,z, null, 6); cy(WHITE(), 0.38,0.3,0.32, 0,ridgeH-1.3,z); sp(MB('#fff4dc'), 0.3, 0,ridgeH-1.55,z, null, 0.6);
+    const gr = new THREE.Group(); gr.position.set(0,ridgeH-1.3,z); for(let i=0;i<4;i++){ const b = new THREE.Mesh(UNIT, WHITE()); b.scale.set(2.5,0.04,0.5); b.position.set(Math.cos(i*1.5708)*1.6,0,Math.sin(i*1.5708)*1.6); b.rotation.y = -i*1.5708; gr.add(b); } root.add(gr); fans.push(gr); }
+  if(s.tracks==='keep') for(const [x,z] of G.trackPos){ const y = cY(x); ib(WHITE(), 0.55,0.08,0.3, x,y-0.05,z); for(const dx of [-0.2,0.2]){ ib(WHITE(), 0.2,0.34,0.2, x+dx,y-0.3,z); ib(MB(s.scene==='asis'?'#fff6dc':'#c9a877'), 0.15,0.02,0.15, x+dx,y-0.48,z); } }
+  // speakers
+  if(s.speakers==='column'){ const m = M('#5a371f',{r:.6}); for(const sx of [-1,1]){ ib(m, 0.42,3.8,0.36, sx*G.outerPostX,8.3,0.7); } }
+  else { const m = s.speakers==='paint' ? M(ceilCol,{r:.9}) : WHITE(); for(const sx of [-1,1]){ const x = sx*W*0.25; ib(m, 2,1.05,1.2, x,cY(x)-0.7,11, null,0,-sx*0.35); if(s.speakers==='asis') ib(M('#d9d6cc'), 1.7,0.8,0.05, x,cY(x)-0.75,11.62,null,0,-sx*0.35); } }
+  // projectors + cabling
+  const px = W*0.36, sides = G.nProj===2 ? [-1,1] : G.nProj===1 ? [-1] : [];
+  for(const sx of sides){ const x = sx*px, y = cY(x);
+    if(s.projectors==='asis'){ cy(BLACK(), 0.06,0.06,1.7, x,y-0.85,13, null, 6); ib(M('#dcdcd6'), 1.3,0.45,1.2, x,y-1.9,13); ib(BLACK(), 0.3,0.25,0.1, x,y-1.9,12.38); }
+    else { ib(M(ceilCol,{r:.9}), 1.9,0.75,1.9, x,y-0.3,13); ib(BLACK(), 0.7,0.3,0.05, x,y-0.35,12.03); } }
+  if(s.cabling==='asis') for(const sx of [-1,1]){ const x = sx*px, y = cY(x); ib(WHITE(), 0.14,0.08,13, x,y-0.04,6.5); ib(WHITE(), 0.14,y-6.5,0.08, x,(y+6.5)/2,0.05); ib(M('#d8d4c8'), 0.5,0.7,0.12, x,6.2,0.07); }
+  // screens
+  const sw = Math.min(9.5, W/2-gw/2-0.9), xC = gw/2+0.35+sw/2, hy = Math.min(cY(xC+sw/2)-0.3, G.sill+0.4);
+  const screen = (sx,w) => { const x = sx*xC; ib(WHITE(), w+0.4,0.36,0.36, x,hy,1.2); wz(MB('#dfe3ee',{map:'slide'}), x-w/2, x+w/2, hy-0.2-w*0.6, hy-0.18, 1.24); ib(BLACK(), w,0.12,0.12, x,hy-0.2-w*0.6,1.24); };
+  if(s.screens==='both'){ screen(-1,sw); screen(1,sw); }
+  else if(s.screens==='single') screen(-1, sw*0.75);
+  else if(s.screens==='motor') for(const sx of [-1,1]){ ib(M(PAINTS[s.wallPaint],{r:.95}), sw+1,0.9,1.5, sx*xC,hy+0.15,0.75); ib(BLACK(), sw,0.03,0.12, sx*xC,hy-0.31,1.1); }
+  // trusses
+  if(s.trusses!=='none'){ const tm = wood(DKOAK), mem = G.truss(s.trusses); for(const z of G.trussZ) for(const [p,q] of mem){ const L = Math.hypot(q[0]-p[0],q[1]-p[1]); ib(tm, L,0.75,0.5, (p[0]+q[0])/2,(p[1]+q[1])/2,z, null,0,Math.atan2(q[1]-p[1],q[0]-p[0])); }
+    if(s.trusses==='hammer') for(const z of G.trussZ) for(const sx of [-1,1]) ib(GOLD(), 0.3,0.3,0.6, sx*(W/2-W*0.16),wallH-0.95,z); }
+  // pilasters or columns
+  if(s.pilasters==='pilasters'){ const om = wood(OAK), dk = wood(DKOAK), h = wallH-1.25; for(const z of G.trussZ) for(const sx of [-1,1]){ const x = sx*(W/2-0.2); ib(om, 0.4,h,1.3, x,h/2,z); ib(dk, 0.56,0.8,1.5, x,0.4,z); ib(dk, 0.6,0.4,1.6, x,h-0.2,z); } }
+  if(s.pilasters==='columns'){ const om = wood(OAK), dk = wood(DKOAK), x0 = W/2-5.6, h = cY(x0); for(const sx of [-1,1]){ const x = sx*x0; ib(dk, 0.6,0.9,D, x,h-1.3,D/2);
+      for(const z of G.trussZ){ ib(om, 0.8,h-1.2,0.8, x,(h-1.2)/2,z); ib(dk, 1.15,0.9,1.15, x,0.45,z); ib(dk, 1.1,0.35,1.1, x,h-1.95,z); for(const dz of [-1,1]) { const P = mat4(x,h-2.7,z+dz*1.0,Math.PI/2); ib(dk, 0.3,2.4,0.4, 0,0,0, P, 0, dz*0.78); } } } }
+  // decorative fixtures
+  const glowCol = s.scene==='asis' ? '#ffe9c4' : s.scene==='warm' ? '#ffc477' : '#c98a45';
+  if(s.fixtures==='pendants') for(const [x,z] of G.pendPos){ const yc = cY(x), y = Math.min(11.2, yc-2.6); cy(IRON(), 0.025,0.025,yc-y-0.7, x,(yc+y+0.7)/2,z, null, 5);
+    cy(IRON(), 0.12,0.42,0.3, x,y+0.75,z, null, 6); cy(MB(glowCol), 0.36,0.3,1.2, x,y,z, null, 6); cy(IRON(), 0.3,0.1,0.22, x,y-0.7,z, null, 6);
+    for(let i=0;i<6;i++){ const a = i*1.0472+0.5236; ib(IRON(), 0.045,1.25,0.045, x+Math.cos(a)*0.36,y,z+Math.sin(a)*0.36); } sm(new THREE.ConeGeometry(0.08,0.3,6), IRON(), x,y-0.95,z).rotation.x = Math.PI; }
+  if(s.fixtures==='chandeliers') for(const [x,z] of G.chandPos){ const yc = cY(x), y = Math.min(12, yc-3); cy(IRON(), 0.03,0.03,yc-y-1.6, x,(yc+y+1.6)/2,z, null, 5);
+    sm(new THREE.TorusGeometry(2,0.09,6,28), IRON(), x,y,z).rotation.x = Math.PI/2; sm(new THREE.TorusGeometry(1.94,0.03,6,28), GOLD(), x,y+0.14,z).rotation.x = Math.PI/2;
+    for(let i=0;i<8;i++){ const a = i*0.7854, cx = x+Math.cos(a)*2, cz = z+Math.sin(a)*2; cy(M('#f3ecd8'), 0.06,0.06,0.5, cx,y+0.4,cz, null, 6); sp(MB(glowCol), 0.1, cx,y+0.76,cz, null, 1.5); if(i%2===0){ const P = mat4(x,y,z,-a); ib(IRON(), 2.6,0.03,0.03, 1.0,0.8,0, P, 0, -0.66); } } }
+}
+
+/* ---------------- seating (instanced) ---------------- */
+function buildSeating(){
+  const s = ST, t = s.seating, cw = DIM.chairW;
+  const fab = M(({asis:'#1f2c4c', burgundy:'#6a1e28', tan:'#b59a72'})[t] || '#1f2c4c', {r:1}), fabD = M(({asis:'#182340', burgundy:'#571720', tan:'#a1875f'})[t] || '#182340', {r:1});
+  const blk = M('#161616',{m:.4,r:.5}), hym = M('#7a1220',{r:.7}), oak = wood(OAK), dk = wood(DKOAK), pad = M('#6e1f26',{r:1});
+  for(const r of G.rowsList){ const RB = mat4(r.x,0,r.z,r.ry);
+    if(t==='pews' || t==='pewsK' || t==='used'){ const pm = t==='used' ? wood('#7a5232') : oak, em = t==='used' ? wood('#5a3a22') : dk, nseg = Math.ceil(r.len/15), L = r.len/nseg;
+      for(let k=0;k<nseg;k++){ const B = RB.clone().multiply(new THREE.Matrix4().makeTranslation(-r.len/2+(k+.5)*L,0,0)), l = L-(nseg>1?0.5:0);
+        ib(pm, l,0.15,1.35, 0,1.42,0,B); ib(pm, l,1.9,0.14, 0,2.25,0.72,B); ib(pm, l,0.14,0.2, 0,3.25,0.72,B); for(const sx of [-1,1]) ib(em, 0.2,3.1,1.85, sx*l/2,1.55,0.05,B);
+        ib(pm, l-0.6,0.35,0.14, 0,1.95,0.87,B); for(let x=-l/2+1; x<l/2-0.5; x+=1.9) ib(hym, 0.5,0.62,0.1, x,2.16,0.9,B);
+        if(t==='pewsK'){ ib(em, l-0.5,0.26,0.6, 0,0.42,1.5,B); ib(pad, l-0.6,0.1,0.5, 0,0.6,1.5,B); } } }
+    else for(let j=0;j<r.n;j++){ const B = RB.clone().multiply(new THREE.Matrix4().makeTranslation((j-(r.n-1)/2)*cw,0,0));
+      if(t==='chapel'){ ib(oak, 1.5,0.12,1.35, 0,1.5,0,B); ib(M('#b89a62',{r:1}), 1.3,0.05,1.15, 0,1.58,0,B); for(const [x,z,h] of [[-.68,-.6,1.5],[.68,-.6,1.5],[-.68,.62,3.2],[.68,.62,3.2]]) ib(oak, 0.12,h,0.12, x,h/2,z,B);
+        ib(oak, 1.5,0.3,0.1, 0,3.05,0.62,B); ib(oak, 1.5,0.14,0.1, 0,2.3,0.62,B); for(const x of [-.4,0,.4]) ib(oak, 0.16,0.7,0.06, x,2.68,0.62,B);
+        ib(oak, 1.3,0.3,0.1, 0,1.95,0.74,B); ib(hym, 0.5,0.6,0.08, 0.2,2.2,0.76,B); ib(dk, 1.4,0.2,0.55, 0,0.38,1.3,B); ib(pad, 1.3,0.1,0.45, 0,0.53,1.3,B); }
+      else { ib(fab, 1.55,0.24,1.4, 0,1.52,0,B); ib(fab, 1.55,1.45,0.2, 0,2.6,0.72,B);
+        for(const [x,z] of [[-.72,-.62],[.72,-.62],[-.72,.62],[.72,.62]]) ib(blk, 0.07,1.4,0.07, x,0.7,z,B); for(const sx of [-1,1]) ib(blk, 0.07,1.95,0.07, sx*0.76,2.35,0.8,B);
+        ib(fabD, 1.25,0.55,0.1, 0,1.95,0.85,B); ib(hym, 0.5,0.62,0.07, 0.2,2.22,0.86,B); } }
+  }
+}
+
+/* ---------------- font and loose furnishings ---------------- */
+function buildFurnishings(){
+  const {W,D} = G, s = ST, z = G.fontZ, B = mat4(0,0,z);
+  if(s.fontType==='asis'){ const om = wood('#d2a765'); cy(om, 1.35,1.35,2.9, 0,1.55,0, B, 8); cy(wood('#c2975a'), 1.55,1.6,0.2, 0,0.1,0, B, 8); cy(wood('#c2975a'), 1.6,1.5,0.22, 0,3.1,0, B, 8); cy(om, 0.55,1.4,0.35, 0,3.38,0, B, 8); ib(BRASS(), 0.08,0.6,0.08, 0,3.85,0,B); ib(BRASS(), 0.36,0.08,0.08, 0,3.95,0,B); }
+  else if(s.fontType==='oak'){ const om = M('#ffffff',{map:'panel:#8a5c30',r:.5}), dk = wood(DKOAK); cy(dk, 2.6,2.7,0.35, 0,0.17,0, B, 8); cy(om, 1.7,1.5,3.0, 0,1.85,0, B, 8); cy(dk, 1.95,1.75,0.3, 0,3.5,0, B, 8); sm(new THREE.ConeGeometry(1.7,3.4,8), wood(OAK), 0,5.35,0, B); cy(GOLD(), 0.3,0.3,0.2, 0,7.1,0, B, 8); ib(GOLD(), 0.1,0.8,0.1, 0,7.6,0,B); ib(GOLD(), 0.5,0.1,0.1, 0,7.75,0,B); }
+  else { const st = M('#ffffff',{map:'lime',r:.7}); cy(st, 3.2,3.3,0.4, 0,0.2,0, B, 8); cy(st, 1.3,1.6,0.5, 0,0.65,0, B, 8); cy(st, 0.85,0.95,1.6, 0,1.7,0, B, 8); cy(st, 2.0,1.1,1.25, 0,3.1,0, B, 8); cy(M('#3a6ea0',{r:.08,m:.4}), 1.75,1.75,0.04, 0,3.71,0, B, 16); }
+  if(s.paschal==='yes'){ const P = mat4(2.6,0,z-0.6); cy(BRASS(), 0.7,0.8,0.2, 0,0.1,0, P, 8); cy(BRASS(), 0.09,0.2,3.6, 0,2,0, P, 8); cy(BRASS(), 0.3,0.12,0.2, 0,3.9,0, P, 8); cy(M('#f6f0dc',{r:.5}), 0.13,0.13,2.6, 0,5.3,0, P, 10); ib(M('#a01c22'), 0.05,0.5,0.28, 0,5.6,0,P); ib(M('#a01c22'), 0.3,0.06,0.28, 0,5.7,0,P); flames.push(sp(MB('#ffd98a'), 0.07, 0,6.72,0, P, 2)); }
+  if(s.procCross==='yes'){ const x = -(G.pw/2-1.4), P = mat4(x, G.floorAt(x,1.6), 1.6); cy(wood(DKOAK), 0.5,0.6,0.3, 0,0.15,0, P, 8); cy(wood(DKOAK), 0.06,0.06,6.6, 0,3.5,0, P, 6); ib(BRASS(), 0.12,1.5,0.1, 0,7.3,0,P); ib(BRASS(), 1.0,0.12,0.1, 0,7.55,0,P);
+    for(const dx of [-1.3,1.3]){ cy(wood(DKOAK), 0.35,0.4,0.25, dx,0.12,0, P, 8); cy(wood(DKOAK), 0.05,0.05,4.6, dx,2.4,0, P, 6); cy(BRASS(), 0.16,0.07,0.2, dx,4.75,0, P, 8); cy(M('#f3ecd8'), 0.05,0.05,0.8, dx,5.2,0, P, 6); flames.push(sp(MB('#ffd98a'), 0.05, dx,5.7,0, P, 2)); } }
+  const zc = Math.min(D-3, G.lastRowZ+4.5);
+  if(s.prayerCorner==='yes'){ const Bw = wallB('R', zc, 0), dk = wood(DKOAK); wz(M('#ffffff',{map:'icon:0',r:.45,m:.2}), -0.9,0.9,4.2,6.6,0.1,0,Bw); ib(GOLD(), 2.0,0.1,0.14, 0,4.15,0.07,Bw); ib(dk, 2.2,0.12,0.7, 0,3.6,0.35,Bw); sp(MB('#ff8a3a'), 0.09, 0.6,3.8,0.4, Bw); cy(M('#7a1220',{op:.8}), 0.1,0.08,0.25, -0.6,3.78,0.4, Bw, 8);
+    ib(dk, 1.8,0.25,0.7, 0,0.4,2.4,Bw); ib(M('#6e1f26'), 1.7,0.1,0.6, 0,0.57,2.4,Bw); ib(dk, 1.8,2.6,0.14, 0,1.3,1.9,Bw); ib(dk, 1.9,0.12,0.7, 0,2.65,1.75,Bw); }
+  if(s.votive==='yes'){ const Bw = wallB('R', zc-4, 0); ib(IRON(), 2.6,0.08,1.0, 0,3,0.8,Bw); ib(IRON(), 2.6,0.08,0.7, 0,3.5,0.5,Bw); for(const x of [-1.2,1.2]) ib(IRON(), 0.08,3.5,0.08, x,1.75,0.5,Bw);
+    for(let i=0;i<14;i++){ const x = -1.1+(i%7)*0.36, up = i<7; cy(M(i%3?'#7a1220':'#f3ecd8',{op:.85}), 0.1,0.08,0.22, x,(up?3.66:3.16),(up?0.5:0.95), Bw, 8); if(i%2===0) sp(MB('#ffb45e'), 0.045, x,(up?3.82:3.32),(up?0.5:0.95), Bw, 1.6); } }
+  if(s.confession==='yes'){ const Bw = wallB('R', 5.6, 0), dk = wood(DKOAK), om = wood(OAK); ib(om, 1.8,0.15,1.6, 0,1.5,1.2,Bw); ib(om, 1.8,3.3,0.15, 0,2.9,0.45,Bw); for(const sx of [-1,1]) ib(om, 0.15,2.2,1.6, sx*0.9,1.1,1.2,Bw);
+    const K = Bw.clone().multiply(mat4(0,0,4.4,0)); ib(dk, 1.8,0.25,0.7, 0,0.4,0,K); ib(M('#4a2a6e'), 1.7,0.1,0.6, 0,0.57,0,K); ib(dk, 1.8,2.7,0.14, 0,1.35,-0.6,K); ib(dk, 1.9,0.12,0.7, 0,2.72,-0.75,K); ib(GOLD(), 0.08,0.5,0.03, 0,1.6,-0.52,K); ib(GOLD(), 0.3,0.08,0.03, 0,1.7,-0.52,K); }
+  if(s.welcome==='asis'){ const P = mat4(-(W/2-5.5),0,Math.min(D-3.5, G.lastRowZ+5),0.2); ib(M('#e9e6dc'), 6,0.12,2.5, 0,2.45,0,P); for(const [x,zz] of [[-2.7,-1],[2.7,-1],[-2.7,1],[2.7,1]]) ib(M('#888'), 0.08,2.4,0.08, x,1.2,zz,P); ib(WHITE(), 1.2,0.25,0.9, -1.5,2.65,0,P); ib(M('#c8d0d8'), 1.6,1.1,1.1, 1.2,3.1,0,P); }
+  else if(G.narthexOn){ const Bw = wallB('B', W*0.27, 0), om = M('#ffffff',{map:'panel:#8a5c30',r:.5}); ib(om, 5,3.4,1.6, 0,1.7,1.4,Bw); ib(wood(DKOAK), 5.3,0.14,1.9, 0,3.45,1.4,Bw); ib(wood(OAK), 3.4,3,0.3, -6,5,0.15,Bw); for(let i=0;i<3;i++) ib(WHITE(), 3,0.5,0.08, -6,4.1+i*0.9,0.34,Bw); }
+}
+
+/* ---------------- rear: narthex, loft ---------------- */
+function buildRear(){
+  const {W,D,wallH} = G, s = ST, z = G.zNarthex, dk = wood(DKOAK), om = M('#ffffff',{map:'panel:#8a5c30',r:.5});
+  if(s.narthex==='screen'){ const gl = M('#cfe0e4',{r:.05,m:.1,op:.22,side:1}), top = Math.min(8.4, wallH-1.4);
+    for(const sx of [-1,1]){ const x0 = 4, x1 = W/2, len = x1-x0, xc = sx*(x0+len/2); ib(om, len,3,0.3, xc,1.5,z); ib(dk, len,0.2,0.4, xc,3.05,z); ib(dk, len,0.5,0.4, xc,top+0.25,z);
+      wz(gl, sx>0?x0:-x1, sx>0?x1:-x0, 3.1, top, z, 0); for(let x=x0; x<=x1+0.01; x+=len/Math.round(len/3.5)) ib(dk, 0.28,top,0.36, sx*x,top/2,z); }
+    ib(dk, 8.6,0.6,0.4, 0,top+0.3,z); sm(archFrameGeo(8,top-1.6,'gothic',1.55,0.3,0.36), dk, 0,0,z-0.18); ib(GOLD(), 0.12,0.9,0.1, 0,top+1.3,z); ib(GOLD(), 0.55,0.12,0.1, 0,top+1.45,z); }
+  if(s.narthex==='half'){ for(const sx of [-1,1]){ const len = W/2-4, xc = sx*(4+len/2); ib(om, len,3.5,0.5, xc,1.75,z); ib(dk, len+0.2,0.16,0.8, xc,3.58,z); ib(dk, 0.8,4.2,0.8, sx*4.2,2.1,z); sp(GOLD(), 0.2, sx*4.2,4.4,z); } }
+  if(s.loft==='yes'){ const lw = Math.min(26, W*0.52), ld = 11, y = 8.6, zc = D-ld/2; ib(dk, lw,0.6,ld, 0,y,zc); ib(om, lw,3.2,0.3, 0,y+1.9,D-ld); ib(dk, lw+0.3,0.2,0.5, 0,y+3.55,D-ld);
+    for(const sx of [-1,1]){ ib(dk, 0.8,y,0.8, sx*(lw/2-0.5),y/2,D-ld+0.5); ib(om, 0.3,3.2,ld, sx*lw/2,y+1.9,zc); ib(dk, 0.3,1.6,0.45, sx*(lw/2-1.6),y-1,D-ld+0.5,null,0,sx*0.78); }
+    for(let i=0;i<12;i++) ib(wood(OAK), 3.4,0.2,0.95, -lw/2-1.9, 0.72*(i+0.5), D-0.6-i*0.9); ib(dk, 0.2,3,11, -lw/2-3.7,5.5,D-5.6,null,0,0); }
+}
+
+/* ---------------- organ, piano, choir ---------------- */
+function pipeCase(B, width, hmax, big){ const dk = wood(DKOAK), om = M('#ffffff',{map:'panel:#6b4426',r:.5}), pm = M('#d2bd78',{m:.4,r:.3,e:'#33280c',ei:.5}), zn = M('#b9bcc0',{m:.4,r:.35});
+  ib(om, width,3.4,1.7, 0,1.7,0.85,B); ib(dk, width+0.3,0.3,1.9, 0,3.5,0.95,B);
+  const n = Math.max(5, Math.floor(width/(big?0.42:0.5))), f = big ? 3 : 2;
+  for(let i=0;i<n;i++){ const u = (i+.5)/n, x = -width/2+u*width, top = hmax(x)-0.5, h = Math.max(1.2, (top-3.7)*(0.45+0.55*Math.abs(Math.cos(Math.PI*u*f)))), r = big ? 0.12+0.1*(h/(top-3.6)) : 0.17;
+    cy(i%2&&big?zn:pm, r,r,h, x,3.65+h/2,0.9, B, 10); sm(new THREE.ConeGeometry(r,0.35,10), i%2&&big?zn:pm, x,3.65-0.17,0.9, B).rotateX(Math.PI); ib(BLACK(), r*1.2,0.08,0.05, x,4.2,0.9+r,B); }
+  for(const sx of [-1,1]){ const x = sx*(width/2+0.1), top = hmax(x)-0.3; ib(dk, 0.4,top-3.4,1.5, x,(top+3.4)/2,0.8,B); }
+  if(big){ ib(dk, 0.4,hmax(0)-3.9,1.5, 0,(hmax(0)+3.1)/2,0.5,B); } }
+function buildMusic(){
+  const {W,D} = G, s = ST, cY = G.ceilY, rear = s.choir==='rear', loft = s.loft==='yes';
+  const frontX = -(G.pw/2+G.stepsD+4.2);
+  if(s.organ==='asis'){ // piano/organ under white cover, small pine stand
+    const P = rear ? mat4(-W*0.2,0,D-9,Math.PI) : mat4(Math.max(-W/2+3.5, frontX-0.3), 0, s.choir==='chancel' ? G.zStep+4 : 4.2, 0.12); ib(M('#efece4',{r:1}), 5.2,3.5,2.3, 0,1.75,0,P); ib(M('#e6e2d8',{r:1}), 5.4,0.1,2.5, 0,3.55,0,P);
+    if(!rear){ const P2 = mat4(-W/2+3, 0, 8.4, 0.5); ib(wood(PINE), 1.5,2.9,1.1, 0,1.45,0,P2); } }
+  else { const big = s.organ==='pipe', dk = wood(DKOAK);
+    // console
+    const C = loft ? mat4(0,8.9,D-6.5,Math.PI) : rear ? mat4(-W*0.2,0,D-10,Math.PI) : mat4(Math.max(-W/2+4, frontX), 0, s.choir==='chancel' ? G.zStep+3.5 : 5.2, 0.5);
+    ib(M('#ffffff',{map:'panel:#6b4426',r:.5}), 4.8,3.8,2.4, 0,1.9,0,C); ib(dk, 5,0.2,2.8, 0,3.9,-0.2,C); ib(WHITE(), 3.4,0.1,0.6, 0,2.7,1.3,C); ib(BLACK(), 3.4,0.1,0.5, 0,3.0,1.2,C); ib(dk, 3.6,0.2,1.2, 0,1.6,2.6,C); for(const sx of [-1,1]) ib(dk, 0.2,1.6,1.1, sx*1.7,0.8,2.6,C);
+    // façade
+    if(loft){ const w = big ? 16 : 10; pipeCase(mat4(0,8.9,D,Math.PI), w, x => cY(x)-8.9, big); }
+    else if(rear){ const w = Math.min(big ? 17 : 10, W/2-6.5), pos = -(4.5+w/2); pipeCase(wallB('B',pos,0), w, x => cY(pos-x), big); }
+    else { const w = Math.min(big ? 10.5 : 8.5, W/2-G.outerPostX-1), pos = -(W/2-0.4-w/2); pipeCase(wallB('C',pos,0), w, x => cY(pos+x), big); } }
+  // choir stalls
+  if(s.choir!=='asis'){ const om = wood(OAK), dk = wood(DKOAK), pn = M('#ffffff',{map:'panel:#8a5c30',r:.5});
+    const stall = (P,front) => { ib(om, 10,0.15,1.3, 0,1.45,0,P); ib(pn, 10,3.2,0.15, 0,1.6,0.7,P); for(const x of [-5,0,5]) ib(dk, 0.2,3.3,1.6, x,1.65,0.05,P); if(front){ ib(pn, 10,2.7,0.15, 0,1.35,-1.5,P); ib(dk, 10.2,0.12,0.8, 0,2.75,-1.3,P); } };
+    if(s.choir==='chancel'){ const room = W/2-(G.pw/2+G.stepsD)-1; stall(mat4(-(G.pw/2+G.stepsD+3), 0, G.zStep-5.5 > 5 ? G.zStep-5.5 : 5.5, -Math.PI/2), true); if(room>7.5) stall(mat4(-(G.pw/2+G.stepsD+6.2), 0, G.zStep-5.5 > 5 ? G.zStep-5.5 : 5.5, -Math.PI/2), false); }
+    else { const y = loft ? 8.9 : 0, x = loft ? 0 : W*0.24; stall(mat4(x,y,D-(loft?4.2:8.8),0), true); stall(mat4(x,y,D-(loft?1.4:5.6),0), false); } }
+}
+
+/* ---------------- lights ---------------- */
+function buildLights(){
+  const {W,D,ridgeH} = G, s = ST, sc = s.scene, out = view.mode==='outside';
+  const coveK = s.cove==='remove' ? 0.72 : s.cove==='warm' ? 0.9 : 1, hasDown = s.tracks==='keep' || s.fixtures!=='none';
+  const P = sc==='asis' ? {sky:'#fff3dc', gnd:'#958d7e', hemi:1.75*coveK, fill:hasDown?230:60, fc:'#fff0d4', exp:1.0}
+          : sc==='warm' ? {sky:'#ffe9cf', gnd:'#5e5145', hemi:0.85*coveK, fill:hasDown?170:40, fc:'#ffc98c', exp:1.05}
+          :               {sky:'#8f9cc8', gnd:'#2a2119', hemi:0.26, fill:hasDown?45:8, fc:'#ff9d4a', exp:1.2};
+  renderer.toneMappingExposure = out ? 1.0 : P.exp;
+  root.add(new THREE.HemisphereLight(P.sky, P.gnd, P.hemi + (out?1.2:0)));
+  const fy = s.fixtures==='none' ? ridgeH-3.5 : 11;
+  for(const k of [0.2,0.5,0.8]){ const L = new THREE.PointLight(P.fc, P.fill, 0, 1.6); L.position.set(0,fy,D*k); root.add(L); }
+  // daylight through the chancel glass
+  const gl = new THREE.PointLight(s.glass==='asis'||s.glass==='restore' ? '#ffd9c4' : '#ffc9d6', sc==='vespers'?60:110, 60, 1.6); gl.position.set(0,G.sill+2.5,5); root.add(gl);
+  // candles
+  const nC = s.candles==='six' ? 6 : 2, cl = new THREE.PointLight('#ffa550', (sc==='asis'?8:sc==='warm'?16:22)*nC, 30, 1.8); cl.position.set(0,G.altarY+6,G.altarZ+0.8); root.add(cl);
+  if(s.accent==='yes'){ const mk = (x,ty,tz,I) => { const L = new THREE.SpotLight('#ffe2b4', I, 60, 0.3, 0.7, 1.4); L.position.set(x, G.ceilY(x)-0.6, G.pd+12); L.target.position.set(0,ty,tz); root.add(L); root.add(L.target);
+      ib(BLACK(), 0.3,0.5,0.3, x,G.ceilY(x)-0.3,G.pd+12); };
+    const k = sc==='vespers' ? .6 : 1; mk(-7, G.altarY+3, G.altarZ, 520*k); mk(7, G.sill-3, 0.3, 460*k); mk(0.1, G.altarY+2, G.altarZ+1, 240*k); }
+  if(out){ const sun = new THREE.DirectionalLight('#fff4de', 2.2); sun.position.set(-80,120,D+160); root.add(sun); }
+}
+
+/* ---------------- exterior (low-detail context) ---------------- */
+function buildExterior(){
+  const {W,D,wallH,ridgeH,rise} = G, sd = M('#ffffff',{map:'siding',r:.9}), wh = M('#f4f3ee',{r:.7}), roof = M('#ffffff',{map:'shingle',r:.95,side:1});
+  const o = 0.6, slope = rise/(W/2), PD = 13;
+  fl(M('#ffffff',{map:'grass',r:1}), -700,700,-500,900,-0.06,22);
+  wx(sd, -W/2-o, -o, D+o, 0, wallH, -1, 6); wx(sd, W/2+o, -o, D+o, 0, wallH, 1, 6);
+  const gg = () => { const s2 = new THREE.Shape(); s2.moveTo(-W/2-o,0); s2.lineTo(W/2+o,0); s2.lineTo(W/2+o,wallH); s2.lineTo(0,ridgeH+o*slope); s2.lineTo(-W/2-o,wallH); s2.closePath(); const ge = new THREE.ShapeGeometry(s2), uv = ge.attributes.uv; for(let i=0;i<uv.count;i++) uv.setXY(i,uv.getX(i)/6,uv.getY(i)/6); return ge; };
+  sm(gg(), sd, 0,0,D+o); sm(gg(), sd, 0,0,-o).rotation.y = Math.PI;
+  const ov = 2.5, ry = x => ridgeH+1.1-Math.abs(x)*slope, xe = W/2+ov;
+  Q(roof, [-xe,ry(xe),-ov],[0,ry(0),-ov],[0,ry(0),D+PD+1.5],[-xe,ry(xe),D+PD+1.5], 8); Q(roof, [xe,ry(xe),D+PD+1.5],[0,ry(0),D+PD+1.5],[0,ry(0),-ov],[xe,ry(xe),-ov], 8);
+  // open timber portico
+  const zf = D+PD, post = (x,z,y0,y1,t=0.7) => ib(wh, t,y1-y0,t, x,(y0+y1)/2,z);
+  for(const x of [-W/2,-W/6,W/6,W/2]){ post(x,zf,0,ry(x)-0.5); }
+  post(0,zf,wallH,ry(0)-0.5); ib(wh, W+1,0.8,0.7, 0,wallH,zf); ib(wh, W*0.45,0.7,0.7, 0,wallH+rise*0.55,zf);
+  for(const sx of [-1,1]){ const L = Math.hypot(W/2+ov,(W/2+ov)*slope); ib(wh, L,0.7,0.5, sx*(W/2+ov)/2, ry((W/2+ov)/2)-0.45, zf+1.2, null,0,-sx*Math.atan(slope)); ib(wh, 0.7,0.8,PD, sx*W/2,wallH,D+PD/2); ib(wh, 0.6,0.7,PD, sx*W/6,wallH,D+PD/2); }
+  ib(M('#b9b6ac',{r:1}), W+4,0.3,PD+3, 0,0.02,D+PD/2+1);
+  // entry
+  const B = mat4(0,0,D+o); ib(wh, 7.4,8.2,0.3, 0,4.1,0.1,B); for(const sx of [-1,1]) ib(M('#22262c',{r:.2,m:.4}), 2.6,6.6,0.1, sx*1.5,3.5,0.3,B); ib(wh, 8.6,0.5,0.6, 0,8.5,0.25,B); ib(wh, 7.6,0.4,0.5, 0,9.0,0.2,B);
+  wz(M('#ffffff',{map:'sign:WELCOME:#9fb0c0:#f6f6f2',r:.8}), -3.4,3.4,9.4,10.5,0.12,null,B);
+  for(const x of [-10,10,-18,18]){ ib(wh, 3.2,6.6,0.3, x,4.1,0.1,B); ib(M('#22262c',{r:.2,m:.4}), 2.2,5.4,0.1, x,4.1,0.28,B); }
+  for(const sx of [-1,1]) ib(wh, 0.7,wallH,0.7, sx*(W/2+o),wallH/2,D+o);
+  // steeple
+  const sz = D-12, sy = ridgeH+1; ib(wh, 6,5,6, 0,sy+1.5,sz); ib(wh, 4.4,5,4.4, 0,sy+6,sz); ib(M('#cfd3d6'), 2.4,3,4.5, 0,sy+6,sz); ib(M('#cfd3d6'), 4.5,3,2.4, 0,sy+6,sz); ib(wh, 5,0.4,5, 0,sy+8.6,sz);
+  const sp2 = sm(new THREE.ConeGeometry(3.2,24,4), wh, 0,sy+20.8,sz); sp2.rotation.y = Math.PI/4; ib(GOLD(), 0.3,3.2,0.3, 0,sy+34,sz); ib(GOLD(), 1.8,0.3,0.3, 0,sy+34.5,sz);
+  // wing + connector (to the left as you face the entrance)
+  const wx0 = -W/2-18-36, wx1 = -W/2-18, wz0 = D-52, wz1 = D+6, wh2 = 9, wr = 7.5, wc = (wx0+wx1)/2;
+  ib(sd, 36,wh2,wz1-wz0, wc,wh2/2,(wz0+wz1)/2); 
+  { const s2 = new THREE.Shape(); s2.moveTo(-18,0); s2.lineTo(18,0); s2.lineTo(0,wr); s2.closePath(); sm(new THREE.ShapeGeometry(s2), M('#9fb0c0',{r:.9,side:1}), wc,wh2,wz1+0.02); sm(new THREE.ShapeGeometry(s2), M('#9fb0c0',{r:.9,side:1}), wc,wh2,wz0-0.02); }
+  Q(roof, [wx0-1.5,wh2-0.5,wz0-1.5],[wc,wh2+wr+0.3,wz0-1.5],[wc,wh2+wr+0.3,wz1+1.5],[wx0-1.5,wh2-0.5,wz1+1.5], 8); Q(roof, [wx1+1.5,wh2-0.5,wz1+1.5],[wc,wh2+wr+0.3,wz1+1.5],[wc,wh2+wr+0.3,wz0-1.5],[wx1+1.5,wh2-0.5,wz0-1.5], 8);
+  for(const x of [wc-8,wc+8]){ ib(wh, 5,4.6,0.3, x,5,wz1+0.1); ib(M('#22262c',{r:.2,m:.4}), 4.2,3.8,0.1, x,5,wz1+0.3); }
+  ib(sd, 18.6,9,30, -W/2-9,4.5,D-19); ib(M('#45484d'), 19.4,0.5,31, -W/2-9,9.2,D-19); for(const x of [-W/2-13,-W/2-9,-W/2-5]) ib(M('#22262c',{r:.2,m:.4}), 3,6.6,0.1, x,3.5,D-3.95); ib(wh, 13,7.2,0.2, -W/2-9,3.6,D-4.05);
+  // drive, lawn island, anchor
+  const as = M('#ffffff',{map:'asphalt',r:.8}), cz = D+105, cx = -34;
+  { const ring = new THREE.RingGeometry(34,52,64); ring.rotateX(-Math.PI/2); const uv = ring.attributes.uv; for(let i=0;i<uv.count;i++) uv.setXY(i,uv.getX(i)*10,uv.getY(i)*10); const m = sm(ring, as, cx,0.02,cz); m.scale.set(1.45,1,0.8); }
+  fl(as, -30,30, D+PD+2, D+68, 0.03, 16);
+  { const P = mat4(cx,0,cz,0.6), ir = M('#3e4239',{r:.9,m:.3}); cy(M('#8d8372',{map:'stone'}), 7,7.5,0.8, 0,0.4,0, P, 14); const T = P.clone().multiply(new THREE.Matrix4().makeRotationZ(0.3));
+    cy(ir, 0.45,0.55,13, 0,6.6,0, T, 10); const st = cy(ir, 0.35,0.35,11, 0,11.4,0, T, 8); st.rotateZ(Math.PI/2); sp(ir, 0.7, 5.5,11.4,0,T); sp(ir, 0.7, -5.5,11.4,0,T);
+    sm(new THREE.TorusGeometry(1.5,0.3,8,20), ir, 0,14.3,0, T); const ar = sm(new THREE.TorusGeometry(4.6,0.5,8,20,Math.PI), ir, 0,5,0, T); ar.rotateY(Math.PI/2); ar.rotateZ(Math.PI);
+    for(const sz2 of [-1,1]){ const fk = sm(new THREE.ConeGeometry(1.2,2.4,4), ir, 0,5.6,sz2*4.6, T); fk.rotateX(sz2*0.5); } }
+  // trees
+  const R = rng(11), tg = M('#2f5f2c',{r:1}), tk = M('#4a3524');
+  for(let i=0;i<46;i++){ const a = R()*6.28, r = 150+R()*220, x = cx+Math.cos(a)*r*1.2, z = cz+Math.sin(a)*r; if(Math.abs(x)<W && z<D+40 && z>-40) continue; const h = 26+R()*26; cy(tk, 0.9,1.2,h*0.3, x,h*0.15,z, null, 6); sm(new THREE.ConeGeometry(8+R()*5,h,7), tg, x,h*0.62,z); }
+}
+
+/* ======================================================================
+   7. APP: state, persistence, camera, UI
+   ====================================================================== */
+const view = {mode:'walk', before:false};
+const $ = id => document.getElementById(id);
+const esc = t => String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
+const money = n => n>0 && n<20 && Math.round(n)!==n ? '$'+n.toFixed(2) : '$'+Math.round(n).toLocaleString('en-US');
+const moneyK = n => n>=1e6 ? '$'+(n/1e6).toFixed(2)+'M' : n>=10000 ? '$'+(n/1000).toFixed(n<100000?1:0)+'k' : money(n);
+const rng2 = (lo,hi,f=moneyK) => lo===hi ? f(lo) : f(lo)+' – '+f(hi);
+const fq = q => q>=100 ? Math.round(q).toLocaleString('en-US') : String(Math.round(q*10)/10);
+const optLabel = (gid,v) => { const g = GROUPS[gid]; if(g.num) return (v ?? DIM[gid])+''; const o = g.opts.find(o => o[0]===v); return o ? o[1] : v; };
+const COST_DEF = JSON.parse(JSON.stringify(COST));
+const KEY = 'hopeSanctuary.v1';
+let schemes = [], loadedName = '';
+const SEED = [
+  {name:'Modest refresh', set:{cont:15,design:10}, s:{wallPaint:'white',chancelPaint:'oxblood',ceilFinish:'smooth',fans:'destrat',cove:'warm',scene:'warm',accent:'yes',screens:'motor',cross:'crucifix',frontal:'full',flags:'rear',floorAisle:'runner',rail:'oak',textiles:'embroidered',hymnBoards:'improved',cabling:'conceal',exitSign:'low',projectors:'conceal',speakers:'paint',fontPos:'entrance',paschal:'yes'}},
+  {name:'Full high-church', set:{cont:15,design:10}, s:{floorSeat:'oak',floorAisle:'checker',floorChancel:'limestone',platform:'raised',rail:'oak',altarPos:'east',altarBack:'reredos',altarType:'oak',cross:'crucifix',candles:'six',frontal:'full',pulpit:'elevated',lectern:'yes',credence:'yes',sedilia:'yes',flags:'rear',wallPaint:'white',clad:'limeCh',stencil:'stencil',wainscot:'4',consCross:'yes',hymnBoards:'improved',ceilFinish:'tg',trusses:'hammer',heavens:'yes',tracks:'remove',fans:'destrat',fixtures:'pendants',cove:'warm',scene:'warm',accent:'yes',lamp:'replace',glass:'passion',roseWin:'yes',screens:'remove',seating:'pewsK',fontPos:'entrance',fontType:'stone',procCross:'yes',paschal:'yes',rood:'yes',sacDoors:'gothic',openings:'lancet',pilasters:'pilasters',chancelArch:'arch',moldings:'yes',organ:'digital',choir:'rear',speakers:'column',textiles:'embroidered',confession:'yes',bell:'yes',aumbry:'yes',narthex:'screen',entryFloor:'slate',stoup:'yes',welcome:'moved',exitSign:'low',cabling:'conceal'}},
+];
+function cleanState(o){ const s = asisState(); for(const k in s){ if(!(k in (o||{}))) continue; const g = GROUPS[k], v = o[k];
+    if(g.num){ if(v==null || (typeof v==='number' && isFinite(v))) s[k] = v; } else if(g.opts.some(op => op[0]===v)) s[k] = v; } return s; }
+function save(){ try{ const costOv = {}; for(const k in COST) if(COST[k].lo!==COST_DEF[k].lo || COST[k].hi!==COST_DEF[k].hi) costOv[k] = [COST[k].lo, COST[k].hi];
+    localStorage.setItem(KEY, JSON.stringify({S, DIM, SET, costOv, schemes})); }catch(e){} }
+function load(){ let d = null; try{ d = JSON.parse(localStorage.getItem(KEY)); }catch(e){}
+  if(d){ if(d.DIM) for(const m of DIM_META) if(typeof d.DIM[m[0]]==='number' && isFinite(d.DIM[m[0]])) DIM[m[0]] = Math.min(m[4], Math.max(m[3], d.DIM[m[0]]));
+    if(d.SET){ if(isFinite(d.SET.cont)) SET.cont = +d.SET.cont; if(isFinite(d.SET.design)) SET.design = +d.SET.design; }
+    if(d.costOv) for(const k in d.costOv) if(COST[k]){ COST[k].lo = +d.costOv[k][0]; COST[k].hi = +d.costOv[k][1]; }
+    if(d.S) S = cleanState(d.S);
+    if(Array.isArray(d.schemes)) schemes = d.schemes.filter(x => x && x.name && x.s).map(x => ({name:String(x.name), s:cleanState(x.s), set:{cont:+(x.set?.cont ?? 15), design:+(x.set?.design ?? 10)}})); }
+  if(!d || !Array.isArray(d.schemes)) schemes = SEED.map(x => ({name:x.name, s:cleanState(x.s), set:{...x.set}}));
+}
+
+/* ---------------- camera & movement ---------------- */
+const walk = {x:0, z:60, yaw:0, pitch:0, eye:5.5, lift:0, y:5.5};
+const keys = new Set();
+camera.rotation.order = 'YXZ';
+function sizeCanvas(){ const closed = $('panel').classList.contains('closed'), left = closed ? 0 : 372, w = Math.max(200, innerWidth-left), h = Math.max(200, innerHeight-54);
+  canvas.style.left = left+'px'; canvas.style.width = w+'px'; canvas.style.height = h+'px'; renderer.setSize(w, h, false); camera.aspect = w/h; camera.updateProjectionMatrix(); }
+function lookAtXZ(tx,tz){ walk.yaw = Math.atan2(-(tx-walk.x), -(tz-walk.z)); }
+function preset(p){
+  if(view.mode!=='walk') setMode('walk');
+  const g = G, W = g.W, D = g.D; walk.lift = 0; walk.eye = 5.5; walk.pitch = 0;
+  if(p==='rear'){ walk.x = 0; walk.z = D-2.5; walk.yaw = 0; }
+  else if(p==='font'){ walk.x = 0; walk.z = Math.min(D-1.2, g.fontZ+4.5); walk.yaw = 0; walk.pitch = -0.06; }
+  else if(p==='pew'){ const rows = g.rowsList.filter(r => r.x<0).sort((a,b) => a.z-b.z || b.x-a.x), r = rows[Math.floor(rows.length/2)];
+    if(r){ walk.x = r.x+(r.ry?0:0.4); walk.z = r.z-(r.ry?0:0.15); walk.eye = 3.95; } else { walk.x = -6; walk.z = D/2; } lookAtXZ(0, g.altarZ); walk.pitch = 0.05; }
+  else if(p==='chancel'){ walk.x = 0; walk.z = ST.altarPos==='east' ? g.altarZ+3.6 : Math.max(1.2, g.altarZ-2.4); walk.yaw = Math.PI; }
+  else if(p==='pulpit'){ if(ST.pulpit==='asis'){ walk.x = Math.min(g.pw/2-2, g.gw*0.32); walk.z = g.pd-3.9; } else { walk.x = g.pw/2-3.2; walk.z = g.pd-3.4; walk.lift = 2.7; } lookAtXZ(0, (g.zFront+g.zRear)/2); walk.pitch = -0.1; }
+  walk.y = g.floorAt(walk.x, walk.z)+walk.eye+walk.lift;
+}
+function setMode(m){
+  const was = view.mode; view.mode = m;
+  document.querySelectorAll('#modes button').forEach(b => b.classList.toggle('on', b.dataset.mode===m));
+  if(document.pointerLockElement) document.exitPointerLock();
+  if(m==='outside' || was==='outside') build();
+  orbit.enabled = m!=='walk';
+  if(m==='orbit'){ camera.position.set(G.W*0.62, Math.max(G.ridgeH+20, 40), G.D+22); orbit.target.set(0,4,G.D*0.45); orbit.maxDistance = 400; orbit.update(); }
+  if(m==='outside'){ camera.position.set(-66, 10, G.D+150); orbit.target.set(-14,11,G.D); orbit.maxDistance = 600; orbit.update(); }
+  $('hint').textContent = m==='walk' ? 'Click the view to look around · W A S D to walk · Shift = faster · Esc releases the mouse · B = before/after' : m==='orbit' ? 'Drag to orbit · scroll to zoom · right-drag to pan' : 'Outside: drag to orbit · scroll to zoom';
+}
+canvas.addEventListener('click', () => { if(view.mode==='walk' && !dragMoved && canvas.requestPointerLock){ try{ const r = canvas.requestPointerLock(); if(r && r.catch) r.catch(()=>{}); }catch(e){} } canvas.focus(); });
+let dragging = false, dragMoved = false;
+canvas.addEventListener('mousedown', () => { dragging = true; dragMoved = false; });
+addEventListener('mouseup', () => { dragging = false; });
+addEventListener('mousemove', e => { if(view.mode!=='walk') return; const locked = document.pointerLockElement===canvas; if(!locked && !dragging) return;
+  if(Math.abs(e.movementX)+Math.abs(e.movementY) > 2) dragMoved = true;
+  walk.yaw -= e.movementX*0.0024; walk.pitch = Math.max(-1.35, Math.min(1.35, walk.pitch - e.movementY*0.0024)); });
+const typing = e => /INPUT|SELECT|TEXTAREA/.test(e.target.tagName);
+addEventListener('keydown', e => { if(typing(e)) return; keys.add(e.code);
+  if(e.code==='KeyB') toggleBefore(); const i = ['Digit1','Digit2','Digit3','Digit4','Digit5'].indexOf(e.code); if(i>=0) preset(['rear','font','pew','chancel','pulpit'][i]);
+  if(/^Arrow|Space/.test(e.code)) e.preventDefault(); });
+addEventListener('keyup', e => keys.delete(e.code));
+addEventListener('blur', () => keys.clear());
+function stepWalk(dt){
+  let f = 0, r = 0; if(keys.has('KeyW')||keys.has('ArrowUp')) f += 1; if(keys.has('KeyS')||keys.has('ArrowDown')) f -= 1; if(keys.has('KeyD')) r += 1; if(keys.has('KeyA')) r -= 1;
+  if(keys.has('ArrowLeft')) walk.yaw += dt*1.6; if(keys.has('ArrowRight')) walk.yaw -= dt*1.6;
+  if(f || r){ const sp3 = (keys.has('ShiftLeft')||keys.has('ShiftRight') ? 18 : 8)*dt/Math.hypot(f,r), sy = Math.sin(walk.yaw), cyw = Math.cos(walk.yaw);
+    walk.x += (-sy*f + cyw*r)*sp3; walk.z += (-cyw*f - sy*r)*sp3; walk.eye = 5.5; walk.lift = 0; }
+  walk.x = Math.max(-G.W/2+0.9, Math.min(G.W/2-0.9, walk.x)); walk.z = Math.max(0.9, Math.min(G.D-0.9, walk.z));
+  const ty = G.floorAt(walk.x, walk.z)+walk.eye+walk.lift; walk.y += (ty-walk.y)*Math.min(1, dt*10);
+  camera.position.set(walk.x, walk.y, walk.z); camera.rotation.set(walk.pitch, walk.yaw, 0);
+}
+let last = performance.now();
+function frame(now){ const dt = Math.min(0.1, (now-last)/1000); last = now;
+  if(view.mode==='walk') stepWalk(dt); else orbit.update();
+  for(const f of fans) f.rotation.y += dt*2.2;
+  const fk = 1+Math.sin(now*0.013)*0.12+Math.sin(now*0.031)*0.08; for(const f of flames) f.scale.y = f.scale.x*2*fk;
+  renderer.render(scene, camera); requestAnimationFrame(frame); }
+
+/* ---------------- options panel ---------------- */
+function control(grp){
+  const id = grp.id;
+  if(grp.num) return `<label class="gl">${esc(grp.label)}</label><input type="number" data-gid="${id}" min="${grp.num[0]}" max="${grp.num[1]}" step="${grp.num[2]}"> <small class="note">as-is: <span data-asis="${id}"></span></small>`;
+  if(grp.opts===YN) return `<label class="ck"><input type="checkbox" data-gid="${id}"> <span>${esc(grp.label)}</span></label>`;
+  return `<label class="gl">${esc(grp.label)}</label><select data-gid="${id}">${grp.opts.map(o => `<option value="${o[0]}">${esc(o[1])}</option>`).join('')}</select>`;
+}
+function renderOptions(){
+  $('tab-opts').innerHTML = `<div class="disc">Planning estimates only — rough 2026 Central Ohio ballparks, not quotes. Real bids, architect and structural review (especially trusses, stone weight, raising the chancel, any loft) and permits are required.</div>` +
+    CATS.map((c,i) => `<details class="cat" ${i<2?'open':''}><summary><span class="t">${esc(c.name)}</span><span class="st" id="st-${c.id}"></span></summary>` +
+      c.groups.map(gr => { const g = gr.ref ? GROUPS[gr.ref] : gr; return `<div class="grp" data-grp="${g.id}">${control(g)}${gr.ref ? `<div class="note">Priced under ${esc(g.cat.name)}.</div>` : `<div class="cl" id="cl-${g.id}"></div><div class="flag" id="fl-${g.id}"></div>${SRC[g.id] ? `<div class="note" style="margin:3px 0 0">${esc(SRC[g.id])}</div>` : ''}`}</div>`; }).join('') +
+      (c.id==='layout' ? `<div class="grp"><div id="layoutInfo"></div><button id="layoutReset">Reset layout to as-is</button></div>` : '') +
+      (c.id==='music' ? `<div class="grp"><div id="acInfo" class="note"></div></div>` : '') + `</details>`).join('');
+  $('tab-opts').addEventListener('change', e => { const el = e.target, id = el.dataset.gid; if(!id) return; const g = GROUPS[id];
+    if(view.before) setBefore(false, true);
+    if(g.num){ let v = parseFloat(el.value); if(!isFinite(v)) v = DIM[id]; v = Math.min(g.num[1], Math.max(g.num[0], v)); S[id] = v===DIM[id] ? null : v; }
+    else if(g.opts===YN) S[id] = el.checked ? 'yes' : 'no'; else S[id] = el.value;
+    loadedName = ''; update(); });
+  $('layoutReset').onclick = () => { LAYOUT_KEYS.forEach(k => S[k] = null); S.arrange = 'forward'; S.sideAisles = 'no'; if(view.before) setBefore(false, true); update(); };
+}
+function refreshUI(){
+  const st = view.before ? ASIS : S, C = computeCost(st);
+  document.querySelectorAll('[data-gid]').forEach(el => { const id = el.dataset.gid, g = GROUPS[id];
+    if(g.num) el.value = S[id] ?? DIM[id]; else if(g.opts===YN) el.checked = S[id]==='yes'; else el.value = S[id]; });
+  document.querySelectorAll('[data-asis]').forEach(el => el.textContent = DIM[el.dataset.asis]);
+  document.querySelectorAll('[data-grp]').forEach(el => el.classList.toggle('changed', S[el.dataset.grp] !== ASIS[el.dataset.grp]));
+  const CS = view.before ? computeCost(S) : C;   // the panel always describes the redesign
+  for(const id in GROUPS){ const cl = $('cl-'+id); if(!cl) continue; const ls = CS.lines.filter(l => l.gid===id);
+    cl.innerHTML = ls.map(l => `<div><span class="q">${esc(l.item)}${l.note?' ('+esc(l.note)+')':''}: ${fq(l.qty)} ${l.unit} × ${rng2(l.lo,l.hi,money)}</span><span class="num">${rng2(l.tlo,l.thi)}</span></div>`).join('');
+    const fg = GROUPS[id].flag; $('fl-'+id).textContent = fg ? (fg(S[id], CS.g) ? '⚠ '+fg(S[id], CS.g) : '') : ''; }
+  for(const c of CATS){ const b = CS.bycat[c.id]; $('st-'+c.id).textContent = b ? rng2(b.lo,b.hi) : '$0'; }
+  $('layoutInfo').innerHTML = `<b>${CS.seats} seats</b> (${CS.seats-CS.baseSeats>=0?'+':''}${CS.seats-CS.baseSeats} vs. as-is ${CS.baseSeats}) · ${CS.g.rowsList.length} row sections · ${fq(CS.g.pewLF)} lf of seating` + CS.g.warn.map(w => `<div class="warnbox">${esc(w)}</div>`).join('');
+  $('acInfo').innerHTML = `<b>Acoustics note.</b> Harder surfaces (tile, stone, wood ceiling, pews) liven the room for chant and hymn singing; carpet, textured ceiling and upholstery dry it out. Estimated reverberation for this selection: <b>${CS.ac.rtE.toFixed(1)} s</b> empty, <b>${CS.ac.rtO.toFixed(1)} s</b> at about 60% attendance — <b>${CS.ac.label}</b>. ${CS.ac.note} (Rough Sabine estimate; an acoustician should confirm.)`;
+  // bottom bar
+  $('b-total').textContent = rng2(C.total.lo, C.total.hi);
+  $('b-seat').textContent = C.seats ? rng2(C.total.lo/C.seats, C.total.hi/C.seats, money) : '–';
+  $('b-seats').textContent = C.seats + (C.seats!==C.baseSeats ? ` (${C.seats>C.baseSeats?'+':''}${C.seats-C.baseSeats})` : '');
+  $('b-ac').innerHTML = `<span class="pill" style="background:${C.ac.color}" title="${esc(C.ac.note)}">${C.ac.label}</span> <span class="num">~${C.ac.rtO.toFixed(1)} s</span>`;
+  $('i-cont').value = SET.cont; $('i-design').value = SET.design;
+  $('tab-opts').style.opacity = view.before ? .6 : 1;
+  if($('drawer').classList.contains('on')) $('drawer').innerHTML = costTable(C, view.before ? 'Existing sanctuary (as-is)' : (loadedName || 'Current selections'));
+  renderSchemes(); renderDims();
+}
+function costTable(C, title){
+  let h = `<h3>${esc(title)} — itemized estimate</h3><table><tr><th>Item</th><th class="r">Qty</th><th>Unit</th><th class="r">Unit cost (low – high)</th><th class="r">Line total (low – high)</th></tr>`;
+  for(const c of CATS){ const ls = C.lines.filter(l => l.catId===c.id); if(!ls.length) continue; const b = C.bycat[c.id];
+    h += `<tr class="cat"><td colspan="4">${esc(c.name)}</td><td class="r num">${rng2(b.lo,b.hi,money)}</td></tr>`;
+    for(const l of ls) h += `<tr><td>${esc(l.item)}${l.note?` <small>(${esc(l.note)})</small>`:''}<br><small style="opacity:.65">${esc(l.grp)}: ${esc(optLabel(l.gid, (view.before?ASIS:S)[l.gid]))}</small></td><td class="r num">${fq(l.qty)}</td><td>${l.unit}</td><td class="r num">${rng2(l.lo,l.hi,money)}</td><td class="r num">${rng2(l.tlo,l.thi,money)}</td></tr>`; }
+  if(!C.lines.length) h += `<tr><td colspan="5">Everything is as-is — $0.</td></tr>`;
+  h += `<tr class="tot"><td colspan="4">Subtotal</td><td class="r num">${rng2(C.sub.lo,C.sub.hi,money)}</td></tr>
+    <tr><td colspan="4">Contingency (${SET.cont}%)</td><td class="r num">${rng2(C.cont.lo,C.cont.hi,money)}</td></tr>
+    <tr><td colspan="4">Design, engineering & permits (${SET.design}%)</td><td class="r num">${rng2(C.des.lo,C.des.hi,money)}</td></tr>
+    <tr class="tot"><td colspan="4">Estimated total</td><td class="r num">${rng2(C.total.lo,C.total.hi,money)}</td></tr>
+    <tr><td colspan="4">Cost per seat (${C.seats} seats; as-is ${C.baseSeats})</td><td class="r num">${C.seats ? rng2(C.total.lo/C.seats,C.total.hi/C.seats,money) : '–'}</td></tr>
+    <tr><td colspan="4">Acoustics (rough): ${C.ac.label} — about ${C.ac.rtE.toFixed(1)} s empty, ${C.ac.rtO.toFixed(1)} s at ~60% attendance</td><td></td></tr></table>
+    <div class="disc">Rough 2026 Central Ohio installed-cost ballparks for planning only — not quotes. Quantities come from the dimensions entered in this tool (estimated from photos until you tape-measure). Get real bids, and have an architect and structural engineer review trusses, stone weight, any raised chancel, loft or new wall openings. Permits are required for most of this work.</div>`;
+  return h;
+}
+
+/* ---------------- schemes ---------------- */
+let cmpA = 0, cmpB = 1;
+function renderSchemes(){
+  const el = $('tab-schemes'); if(!el.classList.contains('on')) return;
+  el.innerHTML = `<div class="grp" style="border:none;padding:4px 0 10px"><label class="gl">Save the current selections as a named scheme</label><div style="display:flex;gap:6px"><input type="text" id="schName" placeholder="e.g. Phase 1 — chancel" style="flex:1" value="${esc(loadedName)}"><button id="schSave">Save</button></div></div>` +
+    (schemes.length ? '' : '<div class="note">No saved schemes yet.</div>') +
+    schemes.map((x,i) => { const C = computeCost(x.s, x.set); return `<div class="sch"><b>${esc(x.name)}</b><div class="num" style="color:var(--gilt2)">${rng2(C.total.lo,C.total.hi)} · ${C.seats} seats · ${C.ac.label}</div>
+      <div class="row"><button data-act="load" data-i="${i}">Load</button><button data-act="del" data-i="${i}">Delete</button><label><input type="radio" name="cA" data-act="a" data-i="${i}" ${cmpA===i?'checked':''}> A</label><label><input type="radio" name="cB" data-act="b" data-i="${i}" ${cmpB===i?'checked':''}> B</label></div></div>`; }).join('') +
+    `<div class="row" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><button id="schCmp" ${schemes.length<2?'disabled':''}>Compare A vs B</button><button id="schCmpCur" ${schemes.length<1?'disabled':''}>Compare A vs current</button><button id="b-print2">Print current summary</button></div>
+    <div class="row" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><button id="schExp">Export schemes (JSON)</button><button id="schImp">Import…</button><input type="file" id="schFile" accept=".json" style="display:none"></div>
+    <div class="note">Schemes are kept in this browser. Export a JSON file to back them up or share them.</div>`;
+  $('schSave').onclick = () => { const name = $('schName').value.trim() || 'Scheme '+(schemes.length+1), i = schemes.findIndex(x => x.name===name), rec = {name, s:{...S}, set:{...SET}};
+    if(i>=0) schemes[i] = rec; else schemes.push(rec); loadedName = name; save(); refreshUI(); };
+  $('schCmp').onclick = () => compare(schemes[cmpA], schemes[cmpB]);
+  $('schCmpCur').onclick = () => compare(schemes[cmpA], {name:'Current selections', s:S, set:SET});
+  $('b-print2').onclick = printSummary;
+  $('schExp').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({schemes, DIM}, null, 1)], {type:'application/json'})); a.download = 'hope-sanctuary-schemes.json'; a.click(); };
+  $('schImp').onclick = () => $('schFile').click();
+  $('schFile').onchange = e => { const f = e.target.files[0]; if(!f) return; f.text().then(t => { try{ const d = JSON.parse(t); for(const x of d.schemes||[]){ if(!x || !x.name || !x.s) continue; const rec = {name:String(x.name), s:cleanState(x.s), set:{cont:+(x.set?.cont ?? 15), design:+(x.set?.design ?? 10)}}, i = schemes.findIndex(y => y.name===rec.name); if(i>=0) schemes[i] = rec; else schemes.push(rec); } save(); refreshUI(); }catch(err){ alert('Could not read that file.'); } }); };
+}
+$('tab-schemes').addEventListener('click', e => { const b = e.target.closest('[data-act]'); if(!b) return; const i = +b.dataset.i, act = b.dataset.act;
+  if(act==='load'){ S = cleanState(schemes[i].s); SET.cont = schemes[i].set.cont; SET.design = schemes[i].set.design; loadedName = schemes[i].name; setBefore(false, true); update(); }
+  else if(act==='del'){ if(confirm('Delete scheme "'+schemes[i].name+'"?')){ schemes.splice(i,1); cmpA = Math.min(cmpA, Math.max(0,schemes.length-1)); cmpB = Math.min(cmpB, Math.max(0,schemes.length-1)); save(); refreshUI(); } }
+  else if(act==='a') cmpA = i; else if(act==='b') cmpB = i; });
+function compare(a, b){
+  if(!a || !b) return; const A = computeCost(a.s, a.set), B = computeCost(b.s, b.set), d = (x,y) => { const m = (y.lo+y.hi)/2-(x.lo+x.hi)/2; return (m>=0?'+':'−')+moneyK(Math.abs(m)); };
+  let h = `<h2>Compare schemes by cost</h2><table><tr><th></th><th class="r">A · ${esc(a.name)}</th><th class="r">B · ${esc(b.name)}</th><th class="r">B − A (midpoint)</th></tr>`;
+  const z = {lo:0,hi:0};
+  for(const c of CATS){ const x = A.bycat[c.id]||z, y = B.bycat[c.id]||z; if(!x.hi && !y.hi) continue; h += `<tr><td>${esc(c.name)}</td><td class="r num">${rng2(x.lo,x.hi)}</td><td class="r num">${rng2(y.lo,y.hi)}</td><td class="r num">${d(x,y)}</td></tr>`; }
+  const row = (t,x,y,cls='') => `<tr class="${cls}"><td>${t}</td><td class="r num">${rng2(x.lo,x.hi)}</td><td class="r num">${rng2(y.lo,y.hi)}</td><td class="r num">${d(x,y)}</td></tr>`;
+  h += row('Subtotal',A.sub,B.sub,'tot') + row(`Contingency (${a.set.cont}% / ${b.set.cont}%)`,A.cont,B.cont) + row(`Design & permits (${a.set.design}% / ${b.set.design}%)`,A.des,B.des) + row('Estimated total',A.total,B.total,'tot');
+  const ps = C => C.seats ? rng2(C.total.lo/C.seats, C.total.hi/C.seats, money) : '–';
+  h += `<tr><td>Seats</td><td class="r num">${A.seats}</td><td class="r num">${B.seats}</td><td class="r num">${B.seats-A.seats>=0?'+':''}${B.seats-A.seats}</td></tr><tr><td>Cost per seat</td><td class="r num">${ps(A)}</td><td class="r num">${ps(B)}</td><td></td></tr>
+    <tr><td>Acoustics (est.)</td><td class="r">${A.ac.label}, ~${A.ac.rtO.toFixed(1)} s</td><td class="r">${B.ac.label}, ~${B.ac.rtO.toFixed(1)} s</td><td></td></tr></table><h3 style="margin-top:14px">Selections that differ</h3><table><tr><th>Option</th><th>A</th><th>B</th></tr>`;
+  let n = 0; for(const id in GROUPS){ const va = a.s[id] ?? null, vb = b.s[id] ?? null; if(va===vb) continue; n++; h += `<tr><td>${esc(GROUPS[id].cat.name)} — ${esc(GROUPS[id].label)}</td><td>${esc(optLabel(id,va))}</td><td>${esc(optLabel(id,vb))}</td></tr>`; }
+  if(!n) h += '<tr><td colspan="3">No differences.</td></tr>';
+  h += `</table><div class="disc">Rough 2026 Central Ohio ballparks, not quotes.</div><div style="text-align:right"><button id="mClose">Close</button></div>`;
+  $('modalbox').innerHTML = h; $('modal').classList.add('on'); $('mClose').onclick = () => $('modal').classList.remove('on');
+}
+$('modal').addEventListener('click', e => { if(e.target.id==='modal') $('modal').classList.remove('on'); });
+
+/* ---------------- printable summary ---------------- */
+function printSummary(){
+  const st = view.before ? ASIS : S, C = computeCost(st); renderer.render(scene, camera); let img = ''; try{ img = canvas.toDataURL('image/jpeg', 0.85); }catch(e){}
+  let sel = ''; for(const c of CATS){ const rows = c.groups.filter(g => !g.ref && st[g.id]!==ASIS[g.id]).map(g => `<tr><td>${esc(g.label)}</td><td>${esc(optLabel(g.id, st[g.id]))}</td></tr>`).join(''); if(rows) sel += `<tr class="cat"><td colspan="2">${esc(c.name)}</td></tr>`+rows; }
+  const flags = Object.values(GROUPS).map(g => g.flag && g.flag(st[g.id], C.g)).filter(Boolean);
+  $('printArea').innerHTML = `<h1>Hope Lutheran Church, Sunbury, Ohio — Sanctuary redesign summary</h1><div>${esc(view.before ? 'Existing sanctuary (as-is)' : (loadedName || 'Current selections'))} · printed ${new Date().toLocaleDateString()}</div>
+    ${img ? `<img src="${img}" alt="View of the selected design">` : ''}
+    <h2>Selections (changes from the existing sanctuary)</h2><table>${sel || '<tr><td>None — existing sanctuary.</td></tr>'}</table>
+    ${flags.length ? `<h2>Items needing professional review</h2><ul>${flags.map(f => `<li>${esc(f)}</li>`).join('')}</ul>` : ''}
+    <h2>Itemized estimate</h2>${costTable(C, view.before ? 'As-is' : (loadedName || 'Current selections'))}
+    <h2>Room dimensions used</h2><table>${DIM_META.map(m => `<tr><td>${esc(m[1])}</td><td class="r">${DIM[m[0]]}</td></tr>`).join('')}</table>`;
+  setTimeout(() => window.print(), 50);
+}
+
+/* ---------------- dimensions & prices tabs ---------------- */
+function renderDims(){
+  const el = $('tab-dims'); if(!el.classList.contains('on')) return; const g = geo(view.before ? ASIS : S), ae = document.activeElement;
+  if(ae && ae.dataset && ae.dataset.dim){ $('dimQ').innerHTML = dimQ(g); return; }
+  el.innerHTML = `<div class="note">All values in feet. These start as estimates from photos — replace them with tape-measured numbers and the model, seat count and every quantity update.</div>` +
+    DIM_META.map(m => `<div class="dimrow"><span>${esc(m[1])}</span><input type="number" data-dim="${m[0]}" value="${DIM[m[0]]}" min="${m[3]}" max="${m[4]}" step="${m[5]}"></div>`).join('') +
+    `<div style="margin:8px 0"><button id="dimReset">Reset to photo estimates</button></div><h3>Computed quantities</h3><div id="dimQ">${dimQ(g)}</div>`;
+  $('dimReset').onclick = () => { DIM_META.forEach(m => DIM[m[0]] = m[2]); _baseSeats = null; update(); el.querySelectorAll('[data-dim]').forEach(i => i.value = DIM[i.dataset.dim]); };
+}
+function dimQ(g){ const r = (a,b) => `<div class="dimrow"><span>${a}</span><b class="num">${b}</b></div>`;
+  return r('Seating-area floor', fq(g.aSeat)+' sf') + r('Center-aisle floor', fq(g.aAisle)+' sf') + r('Chancel platform + steps', fq(g.aChancel)+' sf') + r('Side walls (less openings)', fq(g.wallSide)+' sf') + r('Rear wall', fq(g.wallRear)+' sf') + r('Chancel wall (less glass, doors)', fq(g.wallChancel)+' sf') +
+    r('Ceiling, along the slope', fq(g.ceilSF)+' sf') + r('Chancel stained glass', fq(g.glassSF)+' sf') + r('Side-wall glass', fq(g.sideGlassSF)+' sf') + r('Wall perimeter', fq(g.perim)+' lf') + r('Communion rail length', fq(g.railLF)+' lf') + r('Seating length (pews)', fq(g.pewLF)+' lf') +
+    r('Seats', g.seats) + r('Bays / trusses', g.bays+' / '+g.nTruss) + r('Room volume', fq(g.volume)+' cu ft'); }
+$('tab-dims').addEventListener('change', e => { const k = e.target.dataset.dim; if(!k) return; const m = DIM_META.find(m => m[0]===k); let v = parseFloat(e.target.value); if(!isFinite(v)) v = m[2]; v = Math.min(m[4], Math.max(m[3], v)); DIM[k] = v; e.target.value = v; _baseSeats = null; update(); });
+function renderPrices(){
+  $('tab-prices').innerHTML = `<div class="note">Installed unit costs, low and high. Correct these as real quotes come in; totals update at once. (The same table is the <code>COST</code> object near the top of this file.)</div><div style="margin:6px 0"><button id="costReset">Reset all prices</button></div><table><tr><th>Item</th><th>Unit</th><th>Low $</th><th>High $</th></tr>` +
+    Object.entries(COST).map(([k,c]) => `<tr><td>${esc(c.label)}</td><td>${c.unit}</td><td><input type="number" data-cost="${k}" data-f="lo" value="${c.lo}" min="0" step="any"></td><td><input type="number" data-cost="${k}" data-f="hi" value="${c.hi}" min="0" step="any"></td></tr>`).join('') + '</table>';
+  $('costReset').onclick = () => { for(const k in COST){ COST[k].lo = COST_DEF[k].lo; COST[k].hi = COST_DEF[k].hi; } renderPrices(); save(); refreshUI(); };
+}
+$('tab-prices').addEventListener('change', e => { const k = e.target.dataset.cost; if(!k) return; const v = Math.max(0, parseFloat(e.target.value)||0); COST[k][e.target.dataset.f] = v; save(); refreshUI(); });
+
+/* ---------------- wiring ---------------- */
+function update(){ save(); build(); refreshUI(); }
+function setBefore(on, quiet){ view.before = on; $('ba').classList.toggle('on', on); $('ba').textContent = on ? 'Showing as-is — back to redesign' : 'Show as-is (before)'; $('badge').style.display = on ? 'block' : 'none'; if(!quiet){ build(); refreshUI(); } }
+function toggleBefore(){ setBefore(!view.before); }
+$('ba').onclick = toggleBefore;
+document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => { document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('on', x===b)); document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.id==='tab-'+b.dataset.tab)); refreshUI(); });
+document.querySelectorAll('#modes button').forEach(b => b.onclick = () => setMode(b.dataset.mode));
+document.querySelectorAll('#presets button').forEach(b => b.onclick = () => preset(b.dataset.p));
+$('ptoggle').onclick = () => { $('panel').classList.toggle('closed'); sizeCanvas(); };
+$('b-items').onclick = () => { const on = $('drawer').classList.toggle('on'); $('b-items').textContent = on ? 'Itemized ▾' : 'Itemized ▴'; refreshUI(); };
+$('b-print').onclick = printSummary;
+$('i-cont').onchange = e => { SET.cont = Math.max(0, Math.min(50, parseFloat(e.target.value)||0)); save(); refreshUI(); };
+$('i-design').onchange = e => { SET.design = Math.max(0, Math.min(30, parseFloat(e.target.value)||0)); save(); refreshUI(); };
+addEventListener('resize', sizeCanvas);
+
+load(); renderOptions(); renderPrices(); sizeCanvas(); build(); setMode('walk'); preset('rear'); refreshUI(); requestAnimationFrame(frame);
+window.__app = {get S(){ return S; }, set(id,v){ S[id] = v; update(); }, reset(){ S = asisState(); update(); }, ASIS, GROUPS, CATS, DIM, COST, computeCost, geo, update, view, setMode, preset, setBefore, renderer, scene, camera, walk};
+</script>
+</body>
+</html>
