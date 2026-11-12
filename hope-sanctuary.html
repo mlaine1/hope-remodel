@@ -1585,7 +1585,7 @@ const PH_OF = {}; Object.entries({
   floor:'floorSeat floorAisle entryFloor seating arrange aisleW sideAisles rows perRow rowSpacing',
   gifts:'glass sideGlass roseWin organ choir',
 }).forEach(([ph,ids]) => ids.split(' ').forEach(id => PH_OF[id] = ph));
-let phaseOv = {}, PLAN = null, drawerMode = 'items';
+let phaseOv = {}, PLAN = null, drawerMode = 'items', phCollapsed = false;
 function suggestPhase(id, s){
   const ceil = s.ceilFinish!=='asis' || s.trusses!=='none', wallWork = s.wallPaint!=='asis' || s.clad.endsWith('All') || s.wainscot!=='none';
   if(ceil && ['fixtures','tracks','fans','accent','projectors'].includes(id)) return ['shell','Held for the ceiling phase so nothing overhead is installed twice.'];
@@ -1623,9 +1623,12 @@ function makePlan(s, set = SET){
 function phasesHTML(plan, print){
   if(!plan.phases.length) return '<div class="note">Nothing to phase yet — the design is still the existing sanctuary. Choose some options first.</div>';
   const cur = view.before ? 'asis' : view.phase==null ? 'final' : view.phase, btn = (v,l) => `<button data-pv="${v}" class="${cur===v?'on':''}">${l}</button>`;
-  let h = print ? '' : `<h3>Phased plan — ${esc(loadedName || 'current selections')}</h3>`;
-  h += `<div class="note">${plan.phases.length} phases, ordered so the most visible change per dollar comes first and nothing is installed twice. Each phase total includes ${plan.set.cont}% contingency and ${plan.set.design}% design/permits, and the phases add up to the full estimate (${rng2(plan.C.total.lo, plan.C.total.hi)}).${print ? '' : ' Use the buttons to walk the room as it would look after each phase; use the menus to move an item to a different phase.'}</div>`;
-  if(!print) h += `<div class="phsteps"><span class="note">Preview in 3D:</span>${btn('asis','As-is')}${plan.phases.map((p,i) => btn(i,'After phase '+(i+1))).join('')}${btn('final','Final design')}</div>`;
+  const col = phCollapsed && !print, seq = ['asis', ...plan.phases.map((p,i) => i), 'final'], ci = seq.indexOf(cur);
+  let h = print ? '' : `<h3 style="display:flex;justify-content:space-between;align-items:center;gap:10px"><span>Phased plan — ${esc(loadedName || 'current selections')}</span><button id="phToggle" style="font:13px var(--sans)">${col ? 'Show details ▴' : 'Collapse to buttons ▾'}</button></h3>`;
+  if(!col) h += `<div class="note">${plan.phases.length} phases, ordered so the most visible change per dollar comes first and nothing is installed twice. Each phase total includes ${plan.set.cont}% contingency and ${plan.set.design}% design/permits, and the phases add up to the full estimate (${rng2(plan.C.total.lo, plan.C.total.hi)}).${print ? '' : ' Use the buttons to walk the room as it would look after each phase; use the menus to move an item to a different phase.'}</div>`;
+  if(!print) h += `<div class="phsteps"><span class="note">Preview in 3D:</span><button data-pv="${seq[Math.max(0,ci-1)]}" title="Previous" ${ci<=0?'disabled':''}>◀</button>${btn('asis','As-is')}${plan.phases.map((p,i) => btn(i,'After phase '+(i+1))).join('')}${btn('final','Final design')}<button data-pv="${seq[Math.min(seq.length-1,ci+1)]}" title="Next" ${ci>=seq.length-1?'disabled':''}>▶</button></div>`;
+  if(col){ const p = typeof cur==='number' ? plan.phases[cur] : null;
+    return h + `<div class="note" style="font-size:13px">${p ? `<b style="color:var(--gilt2)">Phase ${cur+1} · ${esc(p.name)}</b> — this phase ${rng2(p.lo,p.hi)} · running total ${rng2(p.cumLo,p.cumHi)} (${p.pct}%) · ${p.seats} seats · ${p.items.length} items` : cur==='asis' ? 'The existing sanctuary, before any work.' : `<b style="color:var(--gilt2)">Final design</b> — all ${plan.phases.length} phases complete · ${rng2(plan.C.total.lo, plan.C.total.hi)}`}</div>`; }
   h += plan.warn.map(w => `<div class="warnbox">⚠ ${esc(w)}</div>`).join('');
   plan.phases.forEach((p,i) => { h += `<div class="phase ${cur===i?'cur':''}"><div class="ph-h"><b>Phase ${i+1} · ${esc(p.name)}</b><span class="num">${rng2(p.lo,p.hi)} · running total ${rng2(p.cumLo,p.cumHi)} (${p.pct}%)</span></div>
       <div class="note">${esc(p.why)}</div><div class="note"><b>Milestone:</b> ${p.seats} seats · acoustics ${p.ac.label.toLowerCase()} (~${p.ac.rtO.toFixed(1)} s) · ${p.pct}% of the budget committed.</div><table>` +
@@ -1687,6 +1690,7 @@ $('b-items').onclick = () => openDrawer('items');
 $('b-phases').onclick = () => openDrawer('phases');
 $('drawer').addEventListener('click', e => { const b = e.target.closest('[data-pv]'); if(b){ const v = b.dataset.pv;
     if(v==='asis') setBefore(true); else { view.before = false; $('ba').classList.remove('on'); $('ba').textContent = 'Show as-is (before)'; view.phase = v==='final' ? null : +v; build(); refreshUI(); } return; }
+  if(e.target.id==='phToggle'){ phCollapsed = !phCollapsed; refreshUI(); return; }
   if(e.target.id==='phReset'){ phaseOv = {}; view.phase = null; save(); build(); refreshUI(); } });
 $('drawer').addEventListener('change', e => { const id = e.target.dataset.ph; if(!id) return; if(e.target.value===suggestPhase(id, S)[0]) delete phaseOv[id]; else phaseOv[id] = e.target.value; view.phase = null; save(); build(); refreshUI(); });
 $('b-print').onclick = printSummary;
