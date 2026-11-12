@@ -106,9 +106,50 @@ tr.tot td{font-weight:600;border-top:1px solid var(--gilt)}
 .sch .row{display:flex;gap:5px;margin-top:5px;flex-wrap:wrap;align-items:center}
 #err{position:fixed;inset:auto 0 60px 380px;color:#ffb4a8;background:#3a1612;padding:8px 12px;z-index:30;display:none;white-space:pre-wrap;font:12px monospace}
 #printArea{display:none}
+canvas#c{touch-action:none}
+#stick{position:fixed;left:18px;bottom:72px;width:112px;height:112px;border-radius:50%;background:rgba(20,17,13,.45);border:1px solid rgba(231,201,121,.5);z-index:4;display:none;touch-action:none;-webkit-user-select:none;user-select:none}
+#stick i{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;background:rgba(231,201,121,.75);pointer-events:none}
+#stick.on{display:block}
+.phsteps button[data-phid]{touch-action:none}
+/* ---- narrow windows: toolbar and bottom bar scroll sideways instead of clipping ---- */
+@media (max-width:1000px){
+  #top{flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  #top::-webkit-scrollbar,#bar::-webkit-scrollbar{display:none}
+  #top>*{flex:none} #top button{white-space:nowrap}
+  #bar{overflow-x:auto;overflow-y:hidden;scrollbar-width:none;gap:12px}
+  #bar>*{flex:none} #bar .sp{display:none}
+  #bar button{order:1} #bar .kv{order:2} #bar .kv:first-child{order:0}
+}
+/* ---- phones: the options panel becomes a bottom sheet under the 3D view ---- */
+@media (max-width:760px){
+  body{font-size:14px}
+  button{padding:8px 12px}
+  select,input[type=number],input[type=text]{font-size:16px;padding:7px 8px}   /* 16px stops iOS zooming on focus */
+  #panel{left:0;right:0;top:auto;bottom:54px;width:auto;height:52vh;border-right:none;border-top:1px solid var(--gilt)}
+  #panel.closed{transform:translateY(calc(100% + 60px))}
+  #phead{display:none}
+  #ptoggle,#panel.closed + #ptoggle{left:8px;top:8px;border-radius:8px;border:1px solid var(--line);padding:8px 11px;background:rgba(20,17,13,.9)}
+  #panel:not(.closed) + #ptoggle{background:var(--gilt);color:#1a1408;border-color:var(--gilt)}
+  #top{left:56px;right:0;top:8px;max-width:none;padding-right:8px}
+  #top .seg button{padding:7px 10px}
+  #schemebar button{padding:6px 10px;font-size:13px}
+  #tabs button{font-size:13px;padding:8px 2px}
+  #hint{top:54px;bottom:auto;white-space:normal;width:max-content;max-width:92vw;text-align:center;font-size:11.5px;transition:opacity .6s}
+  #hint.gone{opacity:0}
+  #badge{top:auto;bottom:66px;white-space:nowrap}
+  #bar{padding:0 10px} #bar .big{font-size:17px} #bar input[type=number]{width:60px;font-size:16px;padding:1px 4px}
+  #drawer{max-height:62vh;padding:8px 10px 14px}
+  #drawer table,#modal table{min-width:520px}
+  #modal .box{padding:12px;width:96vw}
+  .phase select{max-width:100%}
+  .phsteps>.note{display:none} #drawer h3{font-size:15px} #drawer .ph-h{font-size:14px} #drawer .ph-h *{white-space:normal}
+  .dimrow input{width:84px}
+  #err{inset:auto 0 60px 0}
+}
+@media (max-height:480px){ #phead p{display:none} #phead{padding:6px 14px} #phead h1{font-size:15px} #hint{display:none} }   /* phone held sideways */
 @media print{
   html,body{overflow:visible;background:#fff;color:#000;height:auto}
-  canvas#c,#panel,#ptoggle,#top,#bar,#drawer,#hint,#badge,#modal,#err{display:none!important}
+  canvas#c,#panel,#ptoggle,#top,#bar,#drawer,#hint,#badge,#modal,#err,#stick{display:none!important}
   #printArea{display:block;padding:10px 6px;font:11px/1.4 Georgia,serif;color:#000}
   #printArea h1{font-size:20px} #printArea h2{font-size:14px;margin-top:14px;border-bottom:1px solid #999}
   #printArea th,#printArea td{border-bottom:1px solid #ccc;padding:2px 5px;color:#000;background:none;position:static}
@@ -141,7 +182,7 @@ tr.tot td{font-weight:600;border-top:1px solid var(--gilt)}
   <div class="tab" id="tab-dims"></div>
   <div class="tab" id="tab-prices"></div>
 </aside>
-<button id="ptoggle" title="Collapse / expand panel">☰</button>
+<button id="ptoggle" title="Show / hide the options panel">☰</button>
 
 <div id="top">
   <div class="seg" id="modes">
@@ -160,6 +201,7 @@ tr.tot td{font-weight:600;border-top:1px solid var(--gilt)}
 </div>
 <div id="badge">BEFORE — existing sanctuary</div>
 <div id="hint"></div>
+<div id="stick" title="Walk"><i></i></div>
 
 <div id="drawer"></div>
 <div id="bar">
@@ -1422,7 +1464,10 @@ function load(){ let d = null; try{ d = JSON.parse(localStorage.getItem(KEY)); }
 const walk = {x:0, z:60, yaw:0, pitch:0, eye:5.5, lift:0, y:5.5};
 const keys = new Set();
 camera.rotation.order = 'YXZ';
-function sizeCanvas(){ const closed = $('panel').classList.contains('closed'), left = closed ? 0 : 372, w = Math.max(200, innerWidth-left), h = Math.max(200, innerHeight-54);
+const TOUCH = matchMedia('(pointer:coarse)').matches || 'ontouchstart' in window;
+const phone = () => innerWidth <= 760;            // must match the phone media query in the CSS
+function sizeCanvas(){ const closed = $('panel').classList.contains('closed'), sheet = phone() && !closed ? $('panel').offsetHeight : 0, left = closed || phone() ? 0 : 372, w = Math.max(200, innerWidth-left), h = Math.max(160, innerHeight-54-sheet);
+  $('stick').style.bottom = (innerHeight-h+16)+'px'; $('stick').style.left = (left+18)+'px';
   canvas.style.left = left+'px'; canvas.style.width = w+'px'; canvas.style.height = h+'px'; renderer.setSize(w, h, false); camera.aspect = w/h; camera.updateProjectionMatrix(); }
 function lookAtXZ(tx,tz){ walk.yaw = Math.atan2(-(tx-walk.x), -(tz-walk.z)); }
 function preset(p){
@@ -1444,10 +1489,27 @@ function setMode(m){
   orbit.enabled = m!=='walk';
   if(m==='orbit'){ camera.position.set(G.W*0.62, Math.max(G.ridgeH+20, 40), G.D+22); orbit.target.set(0,4,G.D*0.45); orbit.maxDistance = 400; orbit.update(); }
   if(m==='outside'){ camera.position.set(-66, 10, G.D+150); orbit.target.set(-14,11,G.D); orbit.maxDistance = 600; orbit.update(); }
-  $('hint').textContent = m==='walk' ? 'Click the view to look around · W A S D to walk · Shift = faster · Esc releases the mouse · B = before/after' : m==='orbit' ? 'Drag to orbit · scroll to zoom · right-drag to pan' : 'Outside: drag to orbit · scroll to zoom';
+  $('stick').classList.toggle('on', TOUCH && m==='walk');
+  if(TOUCH){ const hn = $('hint'); hn.classList.remove('gone'); clearTimeout(setMode.t); setMode.t = setTimeout(() => hn.classList.add('gone'), 7000); }
+  $('hint').textContent = TOUCH ? (m==='walk' ? 'Drag to look · use the stick to walk · ☰ opens the options' : 'Drag to orbit · pinch to zoom · two fingers to pan') : m==='walk' ? 'Click the view to look around · W A S D to walk · Shift = faster · Esc releases the mouse · B = before/after' : m==='orbit' ? 'Drag to orbit · scroll to zoom · right-drag to pan' : 'Outside: drag to orbit · scroll to zoom';
 }
-canvas.addEventListener('click', () => { if(view.mode==='walk' && !dragMoved && canvas.requestPointerLock){ try{ const r = canvas.requestPointerLock(); if(r && r.catch) r.catch(()=>{}); }catch(e){} } canvas.focus(); });
-let dragging = false, dragMoved = false;
+canvas.addEventListener('click', () => { if(view.mode==='walk' && !dragMoved && !lastTouch && canvas.requestPointerLock){ try{ const r = canvas.requestPointerLock(); if(r && r.catch) r.catch(()=>{}); }catch(e){} } canvas.focus(); });
+let dragging = false, dragMoved = false, lastTouch = false;
+/* touch: one finger on the view looks around; the on-screen stick walks */
+const look = {id:null, x:0, y:0}, stick = {id:null, f:0, r:0};
+addEventListener('pointerdown', e => { lastTouch = e.pointerType==='touch'; }, true);
+canvas.addEventListener('pointerdown', e => { if(e.pointerType!=='touch' || view.mode!=='walk' || look.id!=null) return; look.id = e.pointerId; look.x = e.clientX; look.y = e.clientY; });
+addEventListener('pointermove', e => { if(e.pointerId!==look.id) return; if(view.mode!=='walk'){ look.id = null; return; }
+  walk.yaw += (e.clientX-look.x)*0.0055; walk.pitch = Math.max(-1.35, Math.min(1.35, walk.pitch + (e.clientY-look.y)*0.0055)); look.x = e.clientX; look.y = e.clientY; });
+const lookEnd = e => { if(e.pointerId===look.id) look.id = null; };
+addEventListener('pointerup', lookEnd); addEventListener('pointercancel', lookEnd);
+{ const el = $('stick'), knob = el.firstElementChild, R = 36;
+  const mv = e => { const b = el.getBoundingClientRect(); let dx = e.clientX-(b.left+b.width/2), dy = e.clientY-(b.top+b.height/2); const m = Math.hypot(dx,dy); if(m>R){ dx *= R/m; dy *= R/m; }
+    knob.style.transform = `translate(${dx}px,${dy}px)`; stick.r = dx/R; stick.f = -dy/R; };
+  const end = e => { if(e.pointerId!==stick.id) return; stick.id = null; stick.f = stick.r = 0; knob.style.transform = ''; };
+  el.addEventListener('pointerdown', e => { e.preventDefault(); stick.id = e.pointerId; try{ el.setPointerCapture(e.pointerId); }catch(err){} mv(e); });
+  el.addEventListener('pointermove', e => { if(e.pointerId===stick.id) mv(e); });
+  el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end); el.addEventListener('lostpointercapture', end); }
 canvas.addEventListener('mousedown', () => { dragging = true; dragMoved = false; });
 addEventListener('mouseup', () => { dragging = false; });
 addEventListener('mousemove', e => { if(view.mode!=='walk') return; const locked = document.pointerLockElement===canvas; if(!locked && !dragging) return;
@@ -1462,7 +1524,8 @@ addEventListener('blur', () => keys.clear());
 function stepWalk(dt){
   let f = 0, r = 0; if(keys.has('KeyW')||keys.has('ArrowUp')) f += 1; if(keys.has('KeyS')||keys.has('ArrowDown')) f -= 1; if(keys.has('KeyD')) r += 1; if(keys.has('KeyA')) r -= 1;
   if(keys.has('ArrowLeft')) walk.yaw += dt*1.6; if(keys.has('ArrowRight')) walk.yaw -= dt*1.6;
-  if(f || r){ const sp3 = (keys.has('ShiftLeft')||keys.has('ShiftRight') ? 18 : 8)*dt/Math.hypot(f,r), sy = Math.sin(walk.yaw), cyw = Math.cos(walk.yaw);
+  if(Math.hypot(stick.f, stick.r) > 0.12){ f += stick.f; r += stick.r; }
+  if(f || r){ const hm = Math.hypot(f,r), sp3 = (keys.has('ShiftLeft')||keys.has('ShiftRight') ? 18 : 8)*dt*Math.min(1,hm)/hm, sy = Math.sin(walk.yaw), cyw = Math.cos(walk.yaw);
     walk.x += (-sy*f + cyw*r)*sp3; walk.z += (-cyw*f - sy*r)*sp3; walk.eye = 5.5; walk.lift = 0; }
   const c2 = G.cw/2-0.9, inCh = G.apse && Math.abs(walk.x) < c2+0.1;
   walk.z = Math.max(inCh ? G.cz+0.9 : 0.9, Math.min(G.D-0.9, walk.z));
@@ -1722,6 +1785,7 @@ document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => { docum
 document.querySelectorAll('#modes button').forEach(b => b.onclick = () => setMode(b.dataset.mode));
 document.querySelectorAll('#presets button').forEach(b => b.onclick = () => preset(b.dataset.p));
 $('ptoggle').onclick = () => { $('panel').classList.toggle('closed'); sizeCanvas(); };
+if(innerWidth <= 900) $('panel').classList.add('closed');   // small screens start with the room, not the panel
 function openDrawer(mode){ const d = $('drawer'), same = d.classList.contains('on') && drawerMode===mode; drawerMode = mode; d.classList.toggle('on', !same);
   if(same && view.phase!=null){ view.phase = null; build(); }
   $('b-items').textContent = !same && mode==='items' ? 'Itemized ▾' : 'Itemized ▴'; $('b-phases').classList.toggle('on', !same && mode==='phases'); refreshUI(); d.scrollTop = 0; }
@@ -1745,6 +1809,19 @@ $('drawer').addEventListener('drop', e => { const b = e.target.closest && e.targ
   const r = b.getBoundingClientRect(), after = e.clientX > r.left+r.width/2, id = dragPh, tgt = b.dataset.phid; dragPh = null; clearDrop();
   if(id!==tgt){ phaseOrder = phaseOrder.filter(x => x!==id); phaseOrder.splice(phaseOrder.indexOf(tgt)+(after?1:0), 0, id); view.phase = null; save(); build(); refreshUI(); } });
 $('drawer').addEventListener('dragend', () => { dragPh = null; clearDrop(); });
+function movePhase(id, tgt, after){ if(id===tgt) return; phaseOrder = phaseOrder.filter(x => x!==id); phaseOrder.splice(phaseOrder.indexOf(tgt)+(after?1:0), 0, id); view.phase = null; save(); build(); refreshUI(); }
+/* touch has no HTML5 drag, so do the same reorder with pointer events */
+const tdrag = {id:null, ph:null, x:0, y:0, on:false, tgt:null, after:false}; let tdragJust = false;
+$('drawer').addEventListener('pointerdown', e => { const b = e.pointerType==='touch' && e.target.closest('[data-phid]'); if(!b) return; Object.assign(tdrag, {id:e.pointerId, ph:b.dataset.phid, x:e.clientX, y:e.clientY, on:false, tgt:null}); });
+addEventListener('pointermove', e => { if(e.pointerId!==tdrag.id) return;
+  if(!tdrag.on){ if(Math.hypot(e.clientX-tdrag.x, e.clientY-tdrag.y) < 10) return; tdrag.on = true; const me = document.querySelector(`[data-phid="${tdrag.ph}"]`); if(me) me.classList.add('dragging'); }
+  document.querySelectorAll('.dropL,.dropR').forEach(b => b.classList.remove('dropL','dropR')); tdrag.tgt = null;
+  const el = document.elementFromPoint(e.clientX, e.clientY), b = el && el.closest('[data-phid]'); if(!b || b.dataset.phid===tdrag.ph) return;
+  const r = b.getBoundingClientRect(); tdrag.after = e.clientX > r.left+r.width/2; tdrag.tgt = b.dataset.phid; b.classList.add(tdrag.after ? 'dropR' : 'dropL'); });
+const tdragEnd = e => { if(e.pointerId!==tdrag.id) return; const {on, ph, tgt, after} = tdrag; tdrag.id = null; clearDrop();
+  if(on){ tdragJust = true; setTimeout(() => tdragJust = false, 350); if(tgt && e.type==='pointerup') movePhase(ph, tgt, after); } };
+addEventListener('pointerup', tdragEnd); addEventListener('pointercancel', tdragEnd);
+$('drawer').addEventListener('click', e => { if(tdragJust){ e.stopPropagation(); e.preventDefault(); } }, true);
 $('drawer').addEventListener('change', e => { const id = e.target.dataset.ph; if(!id) return; if(e.target.value===suggestPhase(id, S)[0]) delete phaseOv[id]; else phaseOv[id] = e.target.value; view.phase = null; save(); build(); refreshUI(); });
 $('b-print').onclick = printSummary;
 $('i-cont').onchange = e => { SET.cont = Math.max(0, Math.min(50, parseFloat(e.target.value)||0)); save(); refreshUI(); };
