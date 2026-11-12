@@ -32,6 +32,11 @@ h1,h2,h3{font-family:var(--serif);font-weight:600;margin:0}
 #phead{padding:12px 14px 8px;border-bottom:1px solid var(--line)}
 #phead h1{font-size:18px;color:var(--gilt2);letter-spacing:.2px}
 #phead p{margin:2px 0 0;color:var(--dim);font-size:11.5px}
+#schemebar{padding:8px 10px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:5px;align-items:center;background:var(--panel2)}
+#schemebar .sbn{flex:1 1 100%;font-size:12.5px}
+#schemebar .sbn b{font-family:var(--serif);font-size:14px;color:var(--gilt2)}
+#schemebar .ed{color:var(--warn)} #schemebar .ok{color:var(--ok)}
+#schemebar button{padding:3px 9px;font-size:12px}
 #tabs{display:flex;gap:4px;padding:8px 10px 0}
 #tabs button{flex:1;border-radius:6px 6px 0 0;border-bottom:none;padding:6px 4px;font-size:12px}
 .tab{display:none;overflow:auto;flex:1;padding:8px 10px 20px;border-top:1px solid var(--line)}
@@ -124,6 +129,7 @@ tr.tot td{font-weight:600;border-top:1px solid var(--gilt)}
     <h1>Hope Lutheran · Sanctuary Studio</h1>
     <p>Walk the room, try redesign options, watch the rough cost. Sunbury, Ohio.</p>
   </div>
+  <div id="schemebar"></div>
   <div id="tabs">
     <button data-tab="opts" class="on">Options</button>
     <button data-tab="schemes">Schemes</button>
@@ -1394,7 +1400,7 @@ const SEED = [
 function cleanState(o){ const s = asisState(); for(const k in s){ if(!(k in (o||{}))) continue; const g = GROUPS[k], v = o[k];
     if(g.num){ if(v==null || (typeof v==='number' && isFinite(v))) s[k] = v; } else if(g.opts.some(op => op[0]===v)) s[k] = v; } return s; }
 function save(){ try{ const costOv = {}; for(const k in COST) if(COST[k].lo!==COST_DEF[k].lo || COST[k].hi!==COST_DEF[k].hi) costOv[k] = [COST[k].lo, COST[k].hi];
-    localStorage.setItem(KEY, JSON.stringify({S, DIM, SET, costOv, schemes, phaseOv, phaseOrder})); }catch(e){} }
+    localStorage.setItem(KEY, JSON.stringify({S, DIM, SET, costOv, schemes, phaseOv, phaseOrder, loadedName})); }catch(e){} }
 function load(){ let d = null; try{ d = JSON.parse(localStorage.getItem(KEY)); }catch(e){}
   if(d){ if(d.DIM) for(const m of DIM_META) if(typeof d.DIM[m[0]]==='number' && isFinite(d.DIM[m[0]])) DIM[m[0]] = Math.min(m[4], Math.max(m[3], d.DIM[m[0]]));
     if(d.SET){ if(isFinite(d.SET.cont)) SET.cont = +d.SET.cont; if(isFinite(d.SET.design)) SET.design = +d.SET.design; }
@@ -1403,6 +1409,7 @@ function load(){ let d = null; try{ d = JSON.parse(localStorage.getItem(KEY)); }
     if(d.phaseOv && typeof d.phaseOv==='object') for(const k in d.phaseOv) if(GROUPS[k] && PHASES.some(p => p.id===d.phaseOv[k])) phaseOv[k] = d.phaseOv[k];
     if(Array.isArray(d.phaseOrder) && d.phaseOrder.length===PH_DEFAULT.length && PH_DEFAULT.every(id => d.phaseOrder.includes(id))) phaseOrder = [...d.phaseOrder];
     if(Array.isArray(d.schemes)) schemes = d.schemes.filter(x => x && x.name && x.s).map(x => ({name:String(x.name), s:cleanState(x.s), set:{cont:+(x.set?.cont ?? 15), design:+(x.set?.design ?? 10)}})); }
+  if(d && typeof d.loadedName==='string' && schemes.some(x => x.name===d.loadedName)) loadedName = d.loadedName;
   if(!d || !Array.isArray(d.schemes)) schemes = SEED.map(x => ({name:x.name, s:cleanState(x.s), set:{...x.set}}));
 }
 
@@ -1482,7 +1489,7 @@ function renderOptions(){
     if(view.before) setBefore(false, true);
     if(g.num){ let v = parseFloat(el.value); if(!isFinite(v)) v = DIM[id]; v = Math.min(g.num[1], Math.max(g.num[0], v)); S[id] = v===DIM[id] ? null : v; }
     else if(g.opts===YN) S[id] = el.checked ? 'yes' : 'no'; else S[id] = el.value;
-    loadedName = ''; update(); });
+    update(); });
   $('layoutReset').onclick = () => { LAYOUT_KEYS.forEach(k => S[k] = null); S.arrange = 'forward'; S.sideAisles = 'no'; if(view.before) setBefore(false, true); update(); };
 }
 function refreshUI(){
@@ -1510,7 +1517,7 @@ function refreshUI(){
   $('i-cont').value = SET.cont; $('i-design').value = SET.design;
   $('tab-opts').style.opacity = view.before ? .6 : 1;
   if($('drawer').classList.contains('on')) $('drawer').innerHTML = drawerMode==='phases' ? phasesHTML(PLAN = makePlan(S)) : costTable(C, view.before ? 'Existing sanctuary (as-is)' : (loadedName || 'Current selections'));
-  renderSchemes(); renderDims();
+  renderSchemeBar(); renderSchemes(); renderDims();
 }
 function costTable(C, title){
   let h = `<h3>${esc(title)} — itemized estimate</h3><table><tr><th>Item</th><th class="r">Qty</th><th>Unit</th><th class="r">Unit cost (low – high)</th><th class="r">Line total (low – high)</th></tr>`;
@@ -1526,6 +1533,23 @@ function costTable(C, title){
     <tr><td colspan="4">Acoustics (rough): ${C.ac.label} — about ${C.ac.rtE.toFixed(1)} s empty, ${C.ac.rtO.toFixed(1)} s at ~60% attendance</td><td></td></tr></table>
     <div class="disc">Rough 2026 Central Ohio installed-cost ballparks for planning only — not quotes. Quantities come from the dimensions entered in this tool (estimated from photos until you tape-measure). Get real bids, and have an architect and structural engineer review trusses, stone weight, any raised chancel, loft or new wall openings. Permits are required for most of this work.</div>`;
   return h;
+}
+
+/* ---------------- current-scheme bar (always visible above the tabs) ---------------- */
+const sameState = (a,b) => Object.keys(GROUPS).every(k => (a[k] ?? null) === (b[k] ?? null));
+function schemeStatus(){ let sc = schemes.find(x => x.name===loadedName); if(loadedName && !sc) loadedName = '';
+  const asis = sameState(S, ASIS), dirty = sc ? !(sameState(S, sc.s) && sc.set.cont===SET.cont && sc.set.design===SET.design) : !asis && !schemes.some(x => sameState(S, x.s));
+  return {sc, asis, dirty}; }
+function renderSchemeBar(){ const {sc, asis, dirty} = schemeStatus();
+  $('schemebar').innerHTML = `<div class="sbn">${sc ? `<b>${esc(sc.name)}</b> ${dirty ? '<span class="ed">· edited, not saved</span>' : '<span class="ok">· saved</span>'}` : asis ? '<b>Existing sanctuary</b> · no changes yet' : `<b>Unsaved design</b>${dirty ? ' <span class="ed">· not saved</span>' : ' · same as a saved scheme'}`}</div>
+    <button id="sbSave" ${sc && dirty ? '' : 'disabled'} title="Save these changes into the loaded scheme">Save</button><button id="sbSaveAs" ${asis ? 'disabled' : ''} title="Save the current design under a new name">Save as…</button>
+    <button id="sbRevert" ${sc && dirty ? '' : 'disabled'} title="Throw away the edits and reload the saved scheme">Revert</button><button id="sbReset" ${asis && !sc ? 'disabled' : ''} title="Clear every selection and return to the existing sanctuary">Reset to as-is</button>`;
+  $('sbSave').onclick = () => { const i = schemes.findIndex(x => x.name===loadedName); if(i<0) return; schemes[i] = {name:loadedName, s:{...S}, set:{...SET}}; save(); refreshUI(); };
+  $('sbSaveAs').onclick = () => { let name = prompt('Name for this scheme:', loadedName ? loadedName+' (copy)' : ''); if(name==null) return; name = name.trim(); if(!name) return;
+    const i = schemes.findIndex(x => x.name===name); if(i>=0 && !confirm('A scheme called "'+name+'" already exists. Replace it?')) return;
+    const rec = {name, s:{...S}, set:{...SET}}; if(i>=0) schemes[i] = rec; else schemes.push(rec); loadedName = name; save(); refreshUI(); };
+  $('sbRevert').onclick = () => { const x = schemes.find(x => x.name===loadedName); if(!x) return; S = cleanState(x.s); SET.cont = x.set.cont; SET.design = x.set.design; setBefore(false, true); update(); };
+  $('sbReset').onclick = () => { if(dirty && !confirm('This design has changes that are not saved. Discard them and return to the existing sanctuary?')) return; S = asisState(); loadedName = ''; setBefore(false, true); update(); };
 }
 
 /* ---------------- schemes ---------------- */
