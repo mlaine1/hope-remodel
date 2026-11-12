@@ -17,6 +17,7 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;outline:non
 button,select,input{font:inherit;color:inherit}
 button{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:5px 10px;cursor:pointer}
 button:hover{border-color:var(--gilt)}
+button:disabled{opacity:.35;cursor:default;border-color:var(--line)}
 button.on{background:var(--gilt);color:#1a1408;border-color:var(--gilt);font-weight:600}
 select,input[type=number],input[type=text]{background:#120f0b;border:1px solid var(--line);border-radius:5px;padding:4px 6px;max-width:100%}
 select{width:100%}
@@ -1389,13 +1390,14 @@ const SEED = [
 function cleanState(o){ const s = asisState(); for(const k in s){ if(!(k in (o||{}))) continue; const g = GROUPS[k], v = o[k];
     if(g.num){ if(v==null || (typeof v==='number' && isFinite(v))) s[k] = v; } else if(g.opts.some(op => op[0]===v)) s[k] = v; } return s; }
 function save(){ try{ const costOv = {}; for(const k in COST) if(COST[k].lo!==COST_DEF[k].lo || COST[k].hi!==COST_DEF[k].hi) costOv[k] = [COST[k].lo, COST[k].hi];
-    localStorage.setItem(KEY, JSON.stringify({S, DIM, SET, costOv, schemes, phaseOv})); }catch(e){} }
+    localStorage.setItem(KEY, JSON.stringify({S, DIM, SET, costOv, schemes, phaseOv, phaseOrder})); }catch(e){} }
 function load(){ let d = null; try{ d = JSON.parse(localStorage.getItem(KEY)); }catch(e){}
   if(d){ if(d.DIM) for(const m of DIM_META) if(typeof d.DIM[m[0]]==='number' && isFinite(d.DIM[m[0]])) DIM[m[0]] = Math.min(m[4], Math.max(m[3], d.DIM[m[0]]));
     if(d.SET){ if(isFinite(d.SET.cont)) SET.cont = +d.SET.cont; if(isFinite(d.SET.design)) SET.design = +d.SET.design; }
     if(d.costOv) for(const k in d.costOv) if(COST[k]){ COST[k].lo = +d.costOv[k][0]; COST[k].hi = +d.costOv[k][1]; }
     if(d.S) S = cleanState(d.S);
     if(d.phaseOv && typeof d.phaseOv==='object') for(const k in d.phaseOv) if(GROUPS[k] && PHASES.some(p => p.id===d.phaseOv[k])) phaseOv[k] = d.phaseOv[k];
+    if(Array.isArray(d.phaseOrder) && d.phaseOrder.length===PH_DEFAULT.length && PH_DEFAULT.every(id => d.phaseOrder.includes(id))) phaseOrder = [...d.phaseOrder];
     if(Array.isArray(d.schemes)) schemes = d.schemes.filter(x => x && x.name && x.s).map(x => ({name:String(x.name), s:cleanState(x.s), set:{cont:+(x.set?.cont ?? 15), design:+(x.set?.design ?? 10)}})); }
   if(!d || !Array.isArray(d.schemes)) schemes = SEED.map(x => ({name:x.name, s:cleanState(x.s), set:{...x.set}}));
 }
@@ -1586,6 +1588,8 @@ const PH_OF = {}; Object.entries({
   gifts:'glass sideGlass roseWin organ choir',
 }).forEach(([ph,ids]) => ids.split(' ').forEach(id => PH_OF[id] = ph));
 let phaseOv = {}, PLAN = null, drawerMode = 'items', phCollapsed = false;
+const PH_DEFAULT = PHASES.map(p => p.id); let phaseOrder = [...PH_DEFAULT];   // user can reorder phases
+const orderedPhases = () => phaseOrder.map(id => PHASES.find(p => p.id===id)), orderChanged = () => phaseOrder.join() !== PH_DEFAULT.join();
 function suggestPhase(id, s){
   const ceil = s.ceilFinish!=='asis' || s.trusses!=='none', wallWork = s.wallPaint!=='asis' || s.clad.endsWith('All') || s.wainscot!=='none';
   if(ceil && ['fixtures','tracks','fans','accent','projectors'].includes(id)) return ['shell','Held for the ceiling phase so nothing overhead is installed twice.'];
@@ -1611,7 +1615,7 @@ function makePlan(s, set = SET){
   for(const id in GROUPS){ if(s[id]===ASIS[id]) continue; const [sg, note] = suggestPhase(id, s), ov = phaseOv[id] && phaseOv[id]!==sg ? phaseOv[id] : null, ls = C.lines.filter(l => l.gid===id);
     items.push({id, ph:ov || sg, sg, moved:!!ov, note:ov ? 'Moved by you (suggested: '+PHASES[idx(sg)].name+').' : note, lo:ls.reduce((a,l) => a+l.tlo,0), hi:ls.reduce((a,l) => a+l.thi,0)}); }
   const st = {...ASIS}, phases = []; let cumLo = 0, cumHi = 0;
-  for(const P of PHASES){ const its = items.filter(i => i.ph===P.id); if(!its.length) continue;
+  for(const P of orderedPhases()){ const its = items.filter(i => i.ph===P.id); if(!its.length) continue;
     for(const i of its) st[i.id] = s[i.id];
     const lo = its.reduce((a,i) => a+i.lo,0)*k, hi = its.reduce((a,i) => a+i.hi,0)*k; cumLo += lo; cumHi += hi;
     const state = {...st}, g = geo(state);
@@ -1625,16 +1629,16 @@ function phasesHTML(plan, print){
   const cur = view.before ? 'asis' : view.phase==null ? 'final' : view.phase, btn = (v,l) => `<button data-pv="${v}" class="${cur===v?'on':''}">${l}</button>`;
   const col = phCollapsed && !print, seq = ['asis', ...plan.phases.map((p,i) => i), 'final'], ci = seq.indexOf(cur);
   let h = print ? '' : `<h3 style="display:flex;justify-content:space-between;align-items:center;gap:10px"><span>Phased plan — ${esc(loadedName || 'current selections')}</span><button id="phToggle" style="font:13px var(--sans)">${col ? 'Show details ▴' : 'Collapse to buttons ▾'}</button></h3>`;
-  if(!col) h += `<div class="note">${plan.phases.length} phases, ordered so the most visible change per dollar comes first and nothing is installed twice. Each phase total includes ${plan.set.cont}% contingency and ${plan.set.design}% design/permits, and the phases add up to the full estimate (${rng2(plan.C.total.lo, plan.C.total.hi)}).${print ? '' : ' Use the buttons to walk the room as it would look after each phase; use the menus to move an item to a different phase.'}</div>`;
+  if(!col) h += `<div class="note">${plan.phases.length} phases, ${orderChanged() ? 'in your custom order (the suggested order puts the most visible change per dollar first and avoids installing anything twice).' : 'ordered so the most visible change per dollar comes first and nothing is installed twice.'} Each phase total includes ${plan.set.cont}% contingency and ${plan.set.design}% design/permits, and the phases add up to the full estimate (${rng2(plan.C.total.lo, plan.C.total.hi)}).${print ? '' : ' Use the buttons to walk the room as it would look after each phase; use the menus to move an item to a different phase.'}</div>`;
   if(!print) h += `<div class="phsteps"><span class="note">Preview in 3D:</span><button data-pv="${seq[Math.max(0,ci-1)]}" title="Previous" ${ci<=0?'disabled':''}>◀</button>${btn('asis','As-is')}${plan.phases.map((p,i) => btn(i,'After phase '+(i+1))).join('')}${btn('final','Final design')}<button data-pv="${seq[Math.min(seq.length-1,ci+1)]}" title="Next" ${ci>=seq.length-1?'disabled':''}>▶</button></div>`;
   if(col){ const p = typeof cur==='number' ? plan.phases[cur] : null;
     return h + `<div class="note" style="font-size:13px">${p ? `<b style="color:var(--gilt2)">Phase ${cur+1} · ${esc(p.name)}</b> — this phase ${rng2(p.lo,p.hi)} · running total ${rng2(p.cumLo,p.cumHi)} (${p.pct}%) · ${p.seats} seats · ${p.items.length} items` : cur==='asis' ? 'The existing sanctuary, before any work.' : `<b style="color:var(--gilt2)">Final design</b> — all ${plan.phases.length} phases complete · ${rng2(plan.C.total.lo, plan.C.total.hi)}`}</div>`; }
   h += plan.warn.map(w => `<div class="warnbox">⚠ ${esc(w)}</div>`).join('');
-  plan.phases.forEach((p,i) => { h += `<div class="phase ${cur===i?'cur':''}"><div class="ph-h"><b>Phase ${i+1} · ${esc(p.name)}</b><span class="num">${rng2(p.lo,p.hi)} · running total ${rng2(p.cumLo,p.cumHi)} (${p.pct}%)</span></div>
+  plan.phases.forEach((p,i) => { h += `<div class="phase ${cur===i?'cur':''}"><div class="ph-h"><b>${print ? '' : `<button data-mv="${p.id}:-1" title="Move this phase earlier" ${i===0?'disabled':''} style="padding:1px 7px">▲</button> <button data-mv="${p.id}:1" title="Move this phase later" ${i===plan.phases.length-1?'disabled':''} style="padding:1px 7px">▼</button> `}Phase ${i+1} · ${esc(p.name)}</b><span class="num">${rng2(p.lo,p.hi)} · running total ${rng2(p.cumLo,p.cumHi)} (${p.pct}%)</span></div>
       <div class="note">${esc(p.why)}</div><div class="note"><b>Milestone:</b> ${p.seats} seats · acoustics ${p.ac.label.toLowerCase()} (~${p.ac.rtO.toFixed(1)} s) · ${p.pct}% of the budget committed.</div><table>` +
       p.items.map(it => `<tr><td>${esc(GROUPS[it.id].label)}: <b>${esc(optLabel(it.id, plan.phases[plan.phases.length-1].state[it.id]))}</b>${it.note ? `<br><small style="opacity:.7">${esc(it.note)}</small>` : ''}</td><td class="r num">${it.hi ? rng2(it.lo,it.hi) : '$0'}</td>${print ? '' :
-        `<td class="r"><select data-ph="${it.id}">${PHASES.map((P,j) => `<option value="${P.id}" ${P.id===it.ph?'selected':''}>${esc(P.name)}${P.id===it.sg?' (suggested)':''}</option>`).join('')}</select></td>`}</tr>`).join('') + `</table></div>`; });
-  if(!print) h += `<button id="phReset" ${Object.keys(phaseOv).length ? '' : 'disabled'}>Reset to the suggested phases</button><div class="disc">Phase costs are rough 2026 Central Ohio ballparks, not quotes. Item costs shown are before contingency and design; phase totals include them. Sequencing is a starting point for your architect and contractor, who may regroup work to suit bids, seasons and the church calendar.</div>`;
+        `<td class="r"><select data-ph="${it.id}">${orderedPhases().map((P,j) => `<option value="${P.id}" ${P.id===it.ph?'selected':''}>${esc(P.name)}${P.id===it.sg?' (suggested)':''}</option>`).join('')}</select></td>`}</tr>`).join('') + `</table></div>`; });
+  if(!print) h += `<button id="phReset" ${Object.keys(phaseOv).length || orderChanged() ? '' : 'disabled'}>Reset to the suggested phases and order</button><div class="disc">Phase costs are rough 2026 Central Ohio ballparks, not quotes. Item costs shown are before contingency and design; phase totals include them. Sequencing is a starting point for your architect and contractor, who may regroup work to suit bids, seasons and the church calendar.</div>`;
   return h;
 }
 
@@ -1691,7 +1695,10 @@ $('b-phases').onclick = () => openDrawer('phases');
 $('drawer').addEventListener('click', e => { const b = e.target.closest('[data-pv]'); if(b){ const v = b.dataset.pv;
     if(v==='asis') setBefore(true); else { view.before = false; $('ba').classList.remove('on'); $('ba').textContent = 'Show as-is (before)'; view.phase = v==='final' ? null : +v; build(); refreshUI(); } return; }
   if(e.target.id==='phToggle'){ phCollapsed = !phCollapsed; refreshUI(); return; }
-  if(e.target.id==='phReset'){ phaseOv = {}; view.phase = null; save(); build(); refreshUI(); } });
+  const mv = e.target.closest('[data-mv]');
+  if(mv && PLAN){ const [id, d] = mv.dataset.mv.split(':'), vis = PLAN.phases.map(p => p.id), other = vis[vis.indexOf(id)+(+d)];
+    if(other){ const a = phaseOrder.indexOf(id), b = phaseOrder.indexOf(other); phaseOrder[a] = other; phaseOrder[b] = id; view.phase = null; save(); build(); refreshUI(); } return; }
+  if(e.target.id==='phReset'){ phaseOv = {}; phaseOrder = [...PH_DEFAULT]; view.phase = null; save(); build(); refreshUI(); } });
 $('drawer').addEventListener('change', e => { const id = e.target.dataset.ph; if(!id) return; if(e.target.value===suggestPhase(id, S)[0]) delete phaseOv[id]; else phaseOv[id] = e.target.value; view.phase = null; save(); build(); refreshUI(); });
 $('b-print').onclick = printSummary;
 $('i-cont').onchange = e => { SET.cont = Math.max(0, Math.min(50, parseFloat(e.target.value)||0)); save(); refreshUI(); };
