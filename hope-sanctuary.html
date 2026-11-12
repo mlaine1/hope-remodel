@@ -1392,15 +1392,17 @@ const fq = q => q>=100 ? Math.round(q).toLocaleString('en-US') : String(Math.rou
 const optLabel = (gid,v) => { const g = GROUPS[gid]; if(g.num) return (v ?? DIM[gid])+''; const o = g.opts.find(o => o[0]===v); return o ? o[1] : v; };
 const COST_DEF = JSON.parse(JSON.stringify(COST));
 const KEY = 'hopeSanctuary.v1';
-let schemes = [], loadedName = '';
+let schemes = [], loadedName = '', seeded = [];   // seeded = built-in scheme names already offered, so a deleted one stays deleted
 const SEED = [
   {name:'Modest refresh', set:{cont:15,design:10}, s:{wallPaint:'white',chancelPaint:'oxblood',ceilFinish:'smooth',fans:'destrat',cove:'warm',scene:'warm',accent:'yes',screens:'motor',cross:'crucifix',frontal:'full',flags:'rear',floorAisle:'runner',rail:'oak',textiles:'embroidered',hymnBoards:'improved',cabling:'conceal',exitSign:'low',projectors:'conceal',speakers:'paint',fontPos:'entrance',paschal:'yes'}},
+  // the highest-yield pieces of the full scheme at about the Modest refresh budget: everything the eye lands on at the east wall, plus light
+  {name:'High-church essentials', set:{cont:15,design:10}, s:{altarPos:'east',altarBack:'reredos',cross:'crucifix',candles:'six',frontal:'full',rail:'oak',screens:'remove',wallPaint:'white',stencil:'stencil',consCross:'yes',cove:'warm',scene:'warm',accent:'yes',lamp:'replace',floorAisle:'checker',fontPos:'entrance',paschal:'yes',procCross:'yes',hymnBoards:'improved',flags:'rear',exitSign:'low',cabling:'conceal',tracks:'remove'}},
   {name:'Full high-church', set:{cont:15,design:10}, s:{floorSeat:'oak',floorAisle:'checker',floorChancel:'limestone',platform:'raised',rail:'oak',altarPos:'east',altarBack:'reredos',altarType:'oak',cross:'crucifix',candles:'six',frontal:'full',pulpit:'elevated',lectern:'yes',credence:'yes',sedilia:'yes',flags:'rear',wallPaint:'white',clad:'limeCh',stencil:'stencil',wainscot:'4',consCross:'yes',hymnBoards:'improved',ceilFinish:'tg',trusses:'hammer',heavens:'yes',tracks:'remove',fans:'destrat',fixtures:'pendants',cove:'warm',scene:'warm',accent:'yes',lamp:'replace',glass:'passion',roseWin:'yes',screens:'remove',seating:'pewsK',fontPos:'entrance',fontType:'stone',procCross:'yes',paschal:'yes',rood:'yes',sacDoors:'gothic',openings:'lancet',pilasters:'pilasters',chancelArch:'arch',moldings:'yes',organ:'digital',choir:'rear',speakers:'column',textiles:'embroidered',confession:'yes',bell:'yes',aumbry:'yes',narthex:'screen',entryFloor:'slate',stoup:'yes',welcome:'moved',exitSign:'low',cabling:'conceal'}},
 ];
 function cleanState(o){ const s = asisState(); for(const k in s){ if(!(k in (o||{}))) continue; const g = GROUPS[k], v = o[k];
     if(g.num){ if(v==null || (typeof v==='number' && isFinite(v))) s[k] = v; } else if(g.opts.some(op => op[0]===v)) s[k] = v; } return s; }
 function save(){ try{ const costOv = {}; for(const k in COST) if(COST[k].lo!==COST_DEF[k].lo || COST[k].hi!==COST_DEF[k].hi) costOv[k] = [COST[k].lo, COST[k].hi];
-    localStorage.setItem(KEY, JSON.stringify({S, DIM, SET, costOv, schemes, phaseOv, phaseOrder, loadedName})); }catch(e){} }
+    localStorage.setItem(KEY, JSON.stringify({S, DIM, SET, costOv, schemes, phaseOv, phaseOrder, loadedName, seeded})); }catch(e){} }
 function load(){ let d = null; try{ d = JSON.parse(localStorage.getItem(KEY)); }catch(e){}
   if(d){ if(d.DIM) for(const m of DIM_META) if(typeof d.DIM[m[0]]==='number' && isFinite(d.DIM[m[0]])) DIM[m[0]] = Math.min(m[4], Math.max(m[3], d.DIM[m[0]]));
     if(d.SET){ if(isFinite(d.SET.cont)) SET.cont = +d.SET.cont; if(isFinite(d.SET.design)) SET.design = +d.SET.design; }
@@ -1410,7 +1412,10 @@ function load(){ let d = null; try{ d = JSON.parse(localStorage.getItem(KEY)); }
     if(Array.isArray(d.phaseOrder) && d.phaseOrder.length===PH_DEFAULT.length && PH_DEFAULT.every(id => d.phaseOrder.includes(id))) phaseOrder = [...d.phaseOrder];
     if(Array.isArray(d.schemes)) schemes = d.schemes.filter(x => x && x.name && x.s).map(x => ({name:String(x.name), s:cleanState(x.s), set:{cont:+(x.set?.cont ?? 15), design:+(x.set?.design ?? 10)}})); }
   if(d && typeof d.loadedName==='string' && schemes.some(x => x.name===d.loadedName)) loadedName = d.loadedName;
-  if(!d || !Array.isArray(d.schemes)) schemes = SEED.map(x => ({name:x.name, s:cleanState(x.s), set:{...x.set}}));
+  const had = d && Array.isArray(d.schemes);
+  seeded = had ? (Array.isArray(d.seeded) ? d.seeded.map(String) : ['Modest refresh','Full high-church']) : [];
+  SEED.forEach((x,i) => { if(seeded.includes(x.name)) return; seeded.push(x.name);          // offer built-ins added since this browser last saved
+    if(!schemes.some(y => y.name===x.name)) schemes.splice(Math.min(i, schemes.length), 0, {name:x.name, s:cleanState(x.s), set:{...x.set}}); });
 }
 
 /* ---------------- camera & movement ---------------- */
