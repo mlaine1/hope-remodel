@@ -77,6 +77,12 @@ tr.tot td{font-weight:600;border-top:1px solid var(--gilt)}
 #bar .kv small{color:var(--dim);font-size:10.5px;text-transform:uppercase;letter-spacing:.5px}
 #bar input[type=number]{width:52px;padding:2px 4px}
 #bar .sp{flex:1}
+@media (max-width:1380px){#bar .note{display:none}}
+.phase{border:1px solid var(--line);border-radius:7px;padding:8px 10px;margin:8px 0;background:var(--panel2)}
+.phase.cur{border-color:var(--gilt)}
+.ph-h{display:flex;justify-content:space-between;gap:14px;font-family:var(--serif);font-size:15px;color:var(--gilt2);flex-wrap:wrap}
+.phsteps{display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin:6px 0}
+.phase select{width:auto;max-width:210px}
 .pill{display:inline-block;padding:1px 8px;border-radius:10px;font-weight:600;color:#14110d}
 #drawer{position:fixed;left:0;right:0;bottom:54px;max-height:52vh;background:var(--panel);border-top:1px solid var(--gilt);z-index:6;overflow:auto;padding:8px 14px 14px;display:none}
 #drawer.on{display:block}
@@ -98,6 +104,7 @@ tr.tot td{font-weight:600;border-top:1px solid var(--gilt)}
   #printArea th,#printArea td{border-bottom:1px solid #ccc;padding:2px 5px;color:#000;background:none;position:static}
   #printArea tr.cat td{color:#000;font-weight:bold} #printArea img{max-width:100%;border:1px solid #999;margin:8px 0}
   #printArea .disc{border:1px solid #999;padding:6px;background:none;color:#000}
+  #printArea .phase{border:1px solid #999;background:none;page-break-inside:avoid} #printArea .ph-h{color:#000} #printArea .note{color:#333}
 }
 </style>
 <script type="importmap">
@@ -145,7 +152,7 @@ tr.tot td{font-weight:600;border-top:1px solid var(--gilt)}
 
 <div id="drawer"></div>
 <div id="bar">
-  <div class="kv"><small>Estimated total (low – high)</small><span class="big num" id="b-total">$0</span></div>
+  <div class="kv"><small id="b-total-l">Estimated total (low – high)</small><span class="big num" id="b-total">$0</span></div>
   <div class="kv"><small>Per seat</small><span class="num" id="b-seat">–</span></div>
   <div class="kv"><small>Seats</small><span class="num" id="b-seats">–</span></div>
   <div class="kv"><small>Acoustics (est.)</small><span id="b-ac">–</span></div>
@@ -153,6 +160,7 @@ tr.tot td{font-weight:600;border-top:1px solid var(--gilt)}
   <div class="kv"><small>Design / permits %</small><input type="number" id="i-design" min="0" max="30" step="1"></div>
   <div class="sp"></div>
   <span class="note" style="max-width:230px;line-height:1.2">Rough 2026 Central Ohio ballparks — not quotes.</span>
+  <button id="b-phases" title="Split the current design into build phases">Make phases</button>
   <button id="b-items">Itemized ▴</button>
   <button id="b-print">Print summary</button>
 </div>
@@ -934,7 +942,8 @@ function clearRoot(){ if(!root) return; scene.remove(root);
 
 function build(){
   clearRoot(); root = new THREE.Group(); scene.add(root); fans = []; flames = [];
-  ST = view.before ? ASIS : S; G = geo(ST);
+  if(view.phase!=null){ PLAN = makePlan(S); if(view.phase >= PLAN.phases.length) view.phase = null; }
+  ST = view.before ? ASIS : view.phase!=null ? PLAN.phases[view.phase].state : S; G = geo(ST);
   buildShell(); buildSideWalls(); ZS = G.cz; buildChancelWall(); buildChancel(); ZS = 0; buildCeilingItems(); buildSeating(); buildFurnishings(); buildRear(); buildMusic(); buildLights();
   if(view.mode==='outside') buildExterior();
   flushIB();
@@ -1362,7 +1371,7 @@ function buildExterior(){
 /* ======================================================================
    7. APP: state, persistence, camera, UI
    ====================================================================== */
-const view = {mode:'walk', before:false};
+const view = {mode:'walk', before:false, phase:null};   // phase: index of the phase being previewed (cumulative), or null
 const $ = id => document.getElementById(id);
 const esc = t => String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
 const money = n => n>0 && n<20 && Math.round(n)!==n ? '$'+n.toFixed(2) : '$'+Math.round(n).toLocaleString('en-US');
@@ -1380,12 +1389,13 @@ const SEED = [
 function cleanState(o){ const s = asisState(); for(const k in s){ if(!(k in (o||{}))) continue; const g = GROUPS[k], v = o[k];
     if(g.num){ if(v==null || (typeof v==='number' && isFinite(v))) s[k] = v; } else if(g.opts.some(op => op[0]===v)) s[k] = v; } return s; }
 function save(){ try{ const costOv = {}; for(const k in COST) if(COST[k].lo!==COST_DEF[k].lo || COST[k].hi!==COST_DEF[k].hi) costOv[k] = [COST[k].lo, COST[k].hi];
-    localStorage.setItem(KEY, JSON.stringify({S, DIM, SET, costOv, schemes})); }catch(e){} }
+    localStorage.setItem(KEY, JSON.stringify({S, DIM, SET, costOv, schemes, phaseOv})); }catch(e){} }
 function load(){ let d = null; try{ d = JSON.parse(localStorage.getItem(KEY)); }catch(e){}
   if(d){ if(d.DIM) for(const m of DIM_META) if(typeof d.DIM[m[0]]==='number' && isFinite(d.DIM[m[0]])) DIM[m[0]] = Math.min(m[4], Math.max(m[3], d.DIM[m[0]]));
     if(d.SET){ if(isFinite(d.SET.cont)) SET.cont = +d.SET.cont; if(isFinite(d.SET.design)) SET.design = +d.SET.design; }
     if(d.costOv) for(const k in d.costOv) if(COST[k]){ COST[k].lo = +d.costOv[k][0]; COST[k].hi = +d.costOv[k][1]; }
     if(d.S) S = cleanState(d.S);
+    if(d.phaseOv && typeof d.phaseOv==='object') for(const k in d.phaseOv) if(GROUPS[k] && PHASES.some(p => p.id===d.phaseOv[k])) phaseOv[k] = d.phaseOv[k];
     if(Array.isArray(d.schemes)) schemes = d.schemes.filter(x => x && x.name && x.s).map(x => ({name:String(x.name), s:cleanState(x.s), set:{cont:+(x.set?.cont ?? 15), design:+(x.set?.design ?? 10)}})); }
   if(!d || !Array.isArray(d.schemes)) schemes = SEED.map(x => ({name:x.name, s:cleanState(x.s), set:{...x.set}}));
 }
@@ -1483,13 +1493,17 @@ function refreshUI(){
   $('layoutInfo').innerHTML = `<b>${CS.seats} seats</b> (${CS.seats-CS.baseSeats>=0?'+':''}${CS.seats-CS.baseSeats} vs. as-is ${CS.baseSeats}) · ${CS.g.rowsList.length} row sections · ${fq(CS.g.pewLF)} lf of seating · room for up to ${CS.g.maxRows} rows per side at this spacing` + CS.g.warn.map(w => `<div class="warnbox">${esc(w)}</div>`).join('');
   $('acInfo').innerHTML = `<b>Acoustics note.</b> Harder surfaces (tile, stone, wood ceiling, pews) liven the room for chant and hymn singing; carpet, textured ceiling and upholstery dry it out. Estimated reverberation for this selection: <b>${CS.ac.rtE.toFixed(1)} s</b> empty, <b>${CS.ac.rtO.toFixed(1)} s</b> at about 60% attendance — <b>${CS.ac.label}</b>. ${CS.ac.note} (Rough Sabine estimate; an acoustician should confirm.)`;
   // bottom bar
+  const pv = !view.before && view.phase!=null && PLAN ? PLAN.phases[view.phase] : null;
+  $('badge').style.display = view.before || pv ? 'block' : 'none'; $('badge').textContent = view.before ? 'BEFORE — existing sanctuary' : pv ? `After phase ${view.phase+1} — ${pv.name}` : '';
+  $('b-total-l').textContent = pv ? `Through phase ${view.phase+1} (low – high)` : 'Estimated total (low – high)';
+  if(pv){ C.total = {lo:pv.cumLo, hi:pv.cumHi}; C.seats = pv.seats; C.ac = pv.ac; }
   $('b-total').textContent = rng2(C.total.lo, C.total.hi);
   $('b-seat').textContent = C.seats ? rng2(C.total.lo/C.seats, C.total.hi/C.seats, money) : '–';
   $('b-seats').textContent = C.seats + (C.seats!==C.baseSeats ? ` (${C.seats>C.baseSeats?'+':''}${C.seats-C.baseSeats})` : '');
   $('b-ac').innerHTML = `<span class="pill" style="background:${C.ac.color}" title="${esc(C.ac.note)}">${C.ac.label}</span> <span class="num">~${C.ac.rtO.toFixed(1)} s</span>`;
   $('i-cont').value = SET.cont; $('i-design').value = SET.design;
   $('tab-opts').style.opacity = view.before ? .6 : 1;
-  if($('drawer').classList.contains('on')) $('drawer').innerHTML = costTable(C, view.before ? 'Existing sanctuary (as-is)' : (loadedName || 'Current selections'));
+  if($('drawer').classList.contains('on')) $('drawer').innerHTML = drawerMode==='phases' ? phasesHTML(PLAN = makePlan(S)) : costTable(C, view.before ? 'Existing sanctuary (as-is)' : (loadedName || 'Current selections'));
   renderSchemes(); renderDims();
 }
 function costTable(C, title){
@@ -1549,6 +1563,78 @@ function compare(a, b){
 }
 $('modal').addEventListener('click', e => { if(e.target.id==='modal') $('modal').classList.remove('on'); });
 
+/* ---------------- phased plan ----------------
+   Splits the current (final) design into build phases. Each changed option gets a phase from the rules below;
+   the cost of each phase is the final-design cost lines of its options, so the phases always add up to the estimate.
+   Order: most visible change per dollar first, and nothing installed twice. */
+const PHASES = [
+  {id:'quick',   name:'Quick wins: liturgical focus', why:'Movable furnishings, textiles and small fittings. No construction and no permits, so the room reads differently within weeks.'},
+  {id:'expand',  name:'Building expansion', why:'Structural work goes before any finish it would damage. Start engineering, permits and bids early: this has the longest lead time.'},
+  {id:'light',   name:'Light, color and cleanup', why:'The largest change in atmosphere per dollar: lighting, paint, and removing visual clutter.'},
+  {id:'chancel', name:'Chancel', why:'Built-in chancel work done as one job, so the chancel is torn up only once.'},
+  {id:'shell',   name:'Ceiling, walls and architecture', why:'Overhead and dusty work, done while the old carpet and chairs are still in place to take the abuse.'},
+  {id:'floor',   name:'Floor and seating', why:'New floors go in after all overhead work; pews are then anchored to the finished floor.'},
+  {id:'gifts',   name:'Glass, organ and memorial gifts', why:'Long-lead items that can each be funded and installed on their own, often as memorials.'},
+];
+const PH_OF = {}; Object.entries({
+  quick:'cross candles frontal lectern credence sedilia flags hymnBoards lamp fontPos fontType procCross paschal season textiles votive prayerCorner confession bell welcome stoup stations consCross',
+  expand:'expNave expChancel expAisle',
+  light:'wallPaint chancelPaint stencil fixtures tracks cove scene accent screens fans projectors exitSign cabling speakers moldings',
+  chancel:'platform rail altarPos altarBack altarType pulpit floorChancel sacDoors chancelArt aumbry chancelArch rood clad',
+  shell:'ceilFinish trusses heavens wainscot openings pilasters narthex loft',
+  floor:'floorSeat floorAisle entryFloor seating arrange aisleW sideAisles rows perRow rowSpacing',
+  gifts:'glass sideGlass roseWin organ choir',
+}).forEach(([ph,ids]) => ids.split(' ').forEach(id => PH_OF[id] = ph));
+let phaseOv = {}, PLAN = null, drawerMode = 'items';
+function suggestPhase(id, s){
+  const ceil = s.ceilFinish!=='asis' || s.trusses!=='none', wallWork = s.wallPaint!=='asis' || s.clad.endsWith('All') || s.wainscot!=='none';
+  if(ceil && ['fixtures','tracks','fans','accent','projectors'].includes(id)) return ['shell','Held for the ceiling phase so nothing overhead is installed twice.'];
+  if(id==='speakers' && ceil && s.speakers==='paint') return ['shell','Painted with the new ceiling.'];
+  if(id==='moldings' && (ceil || s.wainscot!=='none' || s.clad.endsWith('All') || s.pilasters!=='none')) return ['shell','Fitted after the wall and ceiling finishes.'];
+  if(id==='clad' && s.clad.endsWith('All')) return ['shell',''];
+  if(id==='chancelArt' && s.chancelArt==='icons') return [wallWork ? 'light' : 'quick', wallWork ? 'Hung after the walls are painted.' : ''];
+  if((id==='stations' || id==='consCross') && wallWork) return ['light','Hung after the walls are finished.'];
+  if(id==='fontType' && s.fontType==='stone') return ['floor','Heavy: set on the finished floor.'];
+  if(['arrange','aisleW','sideAisles','rows','perRow','rowSpacing'].includes(id) && s.seating==='asis' && s.floorSeat==='asis') return ['quick','Only moving the existing chairs.'];
+  if(id==='chancelPaint' && (s.expChancel==='yes' || s.clad!=='none')) return ['chancel','Painted with the rebuilt chancel wall.'];
+  return [PH_OF[id] || 'light', ''];
+}
+const PH_RULES = [
+  [['expNave','expChancel','expAisle'], ['wallPaint','platform','rail','altarBack','floorChancel','ceilFinish','trusses','wainscot','clad','floorSeat','floorAisle','seating','glass'], 'Expansion should come before the finishes it would disturb.'],
+  [['ceilFinish','trusses'], ['fixtures','tracks','fans','accent','heavens'], 'Ceiling-mounted items should wait for the new ceiling, or they are installed twice.'],
+  [['ceilFinish','trusses','wainscot','clad','pilasters'], ['floorSeat','floorAisle','seating'], 'Overhead and wall work should finish before new floors and seating go in.'],
+  [['floorSeat'], ['seating'], 'New seating should follow the new floor (pews are anchored to it).'],
+  [['platform'], ['rail','altarPos','altarBack','floorChancel','pulpit'], 'The platform should be rebuilt before the things that stand on it.'],
+];
+function makePlan(s, set = SET){
+  const C = computeCost(s, set), items = [], k = 1+(set.cont+set.design)/100, idx = id => PHASES.findIndex(p => p.id===id);
+  for(const id in GROUPS){ if(s[id]===ASIS[id]) continue; const [sg, note] = suggestPhase(id, s), ov = phaseOv[id] && phaseOv[id]!==sg ? phaseOv[id] : null, ls = C.lines.filter(l => l.gid===id);
+    items.push({id, ph:ov || sg, sg, moved:!!ov, note:ov ? 'Moved by you (suggested: '+PHASES[idx(sg)].name+').' : note, lo:ls.reduce((a,l) => a+l.tlo,0), hi:ls.reduce((a,l) => a+l.thi,0)}); }
+  const st = {...ASIS}, phases = []; let cumLo = 0, cumHi = 0;
+  for(const P of PHASES){ const its = items.filter(i => i.ph===P.id); if(!its.length) continue;
+    for(const i of its) st[i.id] = s[i.id];
+    const lo = its.reduce((a,i) => a+i.lo,0)*k, hi = its.reduce((a,i) => a+i.hi,0)*k; cumLo += lo; cumHi += hi;
+    const state = {...st}, g = geo(state);
+    phases.push({...P, items:its, lo, hi, cumLo, cumHi, state, seats:g.seats, ac:acoustics(state, g), pct:C.total.hi ? Math.round(cumHi/C.total.hi*100) : 100}); }
+  const pos = id => { const it = items.find(i => i.id===id); return it ? phases.findIndex(p => p.id===it.ph) : -1; }, warn = [];
+  for(const [a,b,msg] of PH_RULES){ const pa = a.map(pos).filter(x => x>=0), pb = b.map(pos).filter(x => x>=0); if(pa.length && pb.length && Math.max(...pa) > Math.min(...pb)) warn.push(msg); }
+  return {phases, C, warn, set};
+}
+function phasesHTML(plan, print){
+  if(!plan.phases.length) return '<div class="note">Nothing to phase yet — the design is still the existing sanctuary. Choose some options first.</div>';
+  const cur = view.before ? 'asis' : view.phase==null ? 'final' : view.phase, btn = (v,l) => `<button data-pv="${v}" class="${cur===v?'on':''}">${l}</button>`;
+  let h = print ? '' : `<h3>Phased plan — ${esc(loadedName || 'current selections')}</h3>`;
+  h += `<div class="note">${plan.phases.length} phases, ordered so the most visible change per dollar comes first and nothing is installed twice. Each phase total includes ${plan.set.cont}% contingency and ${plan.set.design}% design/permits, and the phases add up to the full estimate (${rng2(plan.C.total.lo, plan.C.total.hi)}).${print ? '' : ' Use the buttons to walk the room as it would look after each phase; use the menus to move an item to a different phase.'}</div>`;
+  if(!print) h += `<div class="phsteps"><span class="note">Preview in 3D:</span>${btn('asis','As-is')}${plan.phases.map((p,i) => btn(i,'After phase '+(i+1))).join('')}${btn('final','Final design')}</div>`;
+  h += plan.warn.map(w => `<div class="warnbox">⚠ ${esc(w)}</div>`).join('');
+  plan.phases.forEach((p,i) => { h += `<div class="phase ${cur===i?'cur':''}"><div class="ph-h"><b>Phase ${i+1} · ${esc(p.name)}</b><span class="num">${rng2(p.lo,p.hi)} · running total ${rng2(p.cumLo,p.cumHi)} (${p.pct}%)</span></div>
+      <div class="note">${esc(p.why)}</div><div class="note"><b>Milestone:</b> ${p.seats} seats · acoustics ${p.ac.label.toLowerCase()} (~${p.ac.rtO.toFixed(1)} s) · ${p.pct}% of the budget committed.</div><table>` +
+      p.items.map(it => `<tr><td>${esc(GROUPS[it.id].label)}: <b>${esc(optLabel(it.id, plan.phases[plan.phases.length-1].state[it.id]))}</b>${it.note ? `<br><small style="opacity:.7">${esc(it.note)}</small>` : ''}</td><td class="r num">${it.hi ? rng2(it.lo,it.hi) : '$0'}</td>${print ? '' :
+        `<td class="r"><select data-ph="${it.id}">${PHASES.map((P,j) => `<option value="${P.id}" ${P.id===it.ph?'selected':''}>${esc(P.name)}${P.id===it.sg?' (suggested)':''}</option>`).join('')}</select></td>`}</tr>`).join('') + `</table></div>`; });
+  if(!print) h += `<button id="phReset" ${Object.keys(phaseOv).length ? '' : 'disabled'}>Reset to the suggested phases</button><div class="disc">Phase costs are rough 2026 Central Ohio ballparks, not quotes. Item costs shown are before contingency and design; phase totals include them. Sequencing is a starting point for your architect and contractor, who may regroup work to suit bids, seasons and the church calendar.</div>`;
+  return h;
+}
+
 /* ---------------- printable summary ---------------- */
 function printSummary(){
   const st = view.before ? ASIS : S, C = computeCost(st); renderer.render(scene, camera); let img = ''; try{ img = canvas.toDataURL('image/jpeg', 0.85); }catch(e){}
@@ -1558,6 +1644,7 @@ function printSummary(){
     ${img ? `<img src="${img}" alt="View of the selected design">` : ''}
     <h2>Selections (changes from the existing sanctuary)</h2><table>${sel || '<tr><td>None — existing sanctuary.</td></tr>'}</table>
     ${flags.length ? `<h2>Items needing professional review</h2><ul>${flags.map(f => `<li>${esc(f)}</li>`).join('')}</ul>` : ''}
+    ${view.before ? '' : `<h2>Phased plan</h2>${phasesHTML(makePlan(S), true)}`}
     <h2>Itemized estimate</h2>${costTable(C, view.before ? 'As-is' : (loadedName || 'Current selections'))}
     <h2>Room dimensions used</h2><table>${DIM_META.map(m => `<tr><td>${esc(m[1])}</td><td class="r">${DIM[m[0]]}</td></tr>`).join('')}</table>`;
   setTimeout(() => window.print(), 50);
@@ -1585,22 +1672,30 @@ function renderPrices(){
 $('tab-prices').addEventListener('change', e => { const k = e.target.dataset.cost; if(!k) return; const v = Math.max(0, parseFloat(e.target.value)||0); COST[k][e.target.dataset.f] = v; save(); refreshUI(); });
 
 /* ---------------- wiring ---------------- */
-function update(){ save(); build(); refreshUI(); }
-function setBefore(on, quiet){ view.before = on; $('ba').classList.toggle('on', on); $('ba').textContent = on ? 'Showing as-is — back to redesign' : 'Show as-is (before)'; $('badge').style.display = on ? 'block' : 'none'; if(!quiet){ build(); refreshUI(); } }
+function update(){ view.phase = null; save(); build(); refreshUI(); }
+function setBefore(on, quiet){ view.before = on; $('ba').classList.toggle('on', on); $('ba').textContent = on ? 'Showing as-is — back to redesign' : 'Show as-is (before)'; if(on) view.phase = null; if(!quiet){ build(); refreshUI(); } }
 function toggleBefore(){ setBefore(!view.before); }
 $('ba').onclick = toggleBefore;
 document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => { document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('on', x===b)); document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.id==='tab-'+b.dataset.tab)); refreshUI(); });
 document.querySelectorAll('#modes button').forEach(b => b.onclick = () => setMode(b.dataset.mode));
 document.querySelectorAll('#presets button').forEach(b => b.onclick = () => preset(b.dataset.p));
 $('ptoggle').onclick = () => { $('panel').classList.toggle('closed'); sizeCanvas(); };
-$('b-items').onclick = () => { const on = $('drawer').classList.toggle('on'); $('b-items').textContent = on ? 'Itemized ▾' : 'Itemized ▴'; refreshUI(); };
+function openDrawer(mode){ const d = $('drawer'), same = d.classList.contains('on') && drawerMode===mode; drawerMode = mode; d.classList.toggle('on', !same);
+  if(same && view.phase!=null){ view.phase = null; build(); }
+  $('b-items').textContent = !same && mode==='items' ? 'Itemized ▾' : 'Itemized ▴'; $('b-phases').classList.toggle('on', !same && mode==='phases'); refreshUI(); d.scrollTop = 0; }
+$('b-items').onclick = () => openDrawer('items');
+$('b-phases').onclick = () => openDrawer('phases');
+$('drawer').addEventListener('click', e => { const b = e.target.closest('[data-pv]'); if(b){ const v = b.dataset.pv;
+    if(v==='asis') setBefore(true); else { view.before = false; $('ba').classList.remove('on'); $('ba').textContent = 'Show as-is (before)'; view.phase = v==='final' ? null : +v; build(); refreshUI(); } return; }
+  if(e.target.id==='phReset'){ phaseOv = {}; view.phase = null; save(); build(); refreshUI(); } });
+$('drawer').addEventListener('change', e => { const id = e.target.dataset.ph; if(!id) return; if(e.target.value===suggestPhase(id, S)[0]) delete phaseOv[id]; else phaseOv[id] = e.target.value; view.phase = null; save(); build(); refreshUI(); });
 $('b-print').onclick = printSummary;
 $('i-cont').onchange = e => { SET.cont = Math.max(0, Math.min(50, parseFloat(e.target.value)||0)); save(); refreshUI(); };
 $('i-design').onchange = e => { SET.design = Math.max(0, Math.min(30, parseFloat(e.target.value)||0)); save(); refreshUI(); };
 addEventListener('resize', sizeCanvas);
 
 load(); renderOptions(); renderPrices(); sizeCanvas(); build(); setMode('walk'); preset('rear'); refreshUI(); requestAnimationFrame(frame);
-window.__app = {get S(){ return S; }, set(id,v){ S[id] = v; update(); }, reset(){ S = asisState(); update(); }, ASIS, GROUPS, CATS, DIM, COST, computeCost, geo, update, view, setMode, preset, setBefore, renderer, scene, camera, walk};
+window.__app = {makePlan, get PLAN(){ return PLAN; }, get S(){ return S; }, set(id,v){ S[id] = v; update(); }, reset(){ S = asisState(); update(); }, ASIS, GROUPS, CATS, DIM, COST, computeCost, geo, update, view, setMode, preset, setBefore, renderer, scene, camera, walk};
 </script>
 </body>
 </html>
