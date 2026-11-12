@@ -1493,6 +1493,8 @@ function renderOptions(){
   $('layoutReset').onclick = () => { LAYOUT_KEYS.forEach(k => S[k] = null); S.arrange = 'forward'; S.sideAisles = 'no'; if(view.before) setBefore(false, true); update(); };
 }
 function refreshUI(){
+  const noDesign = sameState(S, ASIS); if(noDesign && view.before) setBefore(false, true);
+  $('ba').style.display = noDesign ? 'none' : '';   // nothing to compare against until something is changed
   const st = view.before ? ASIS : S, C = computeCost(st);
   document.querySelectorAll('[data-gid]').forEach(el => { const id = el.dataset.gid, g = GROUPS[id];
     if(g.num) el.value = S[id] ?? DIM[id]; else if(g.opts===YN) el.checked = S[id]==='yes'; else el.value = S[id]; });
@@ -1709,7 +1711,7 @@ $('tab-prices').addEventListener('change', e => { const k = e.target.dataset.cos
 /* ---------------- wiring ---------------- */
 function update(){ view.phase = null; save(); build(); refreshUI(); }
 function setBefore(on, quiet){ view.before = on; $('ba').classList.toggle('on', on); $('ba').textContent = on ? 'Showing as-is — back to redesign' : 'Show as-is (before)'; if(on) view.phase = null; if(!quiet){ build(); refreshUI(); } }
-function toggleBefore(){ setBefore(!view.before); }
+function toggleBefore(){ if(!view.before && sameState(S, ASIS)) return; setBefore(!view.before); }
 $('ba').onclick = toggleBefore;
 document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => { document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('on', x===b)); document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.id==='tab-'+b.dataset.tab)); refreshUI(); });
 document.querySelectorAll('#modes button').forEach(b => b.onclick = () => setMode(b.dataset.mode));
