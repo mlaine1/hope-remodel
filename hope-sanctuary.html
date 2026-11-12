@@ -84,6 +84,10 @@ tr.tot td{font-weight:600;border-top:1px solid var(--gilt)}
 .ph-h{display:flex;justify-content:space-between;gap:14px;font-family:var(--serif);font-size:15px;color:var(--gilt2);flex-wrap:wrap}
 .phsteps{display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin:6px 0}
 .phase select{width:auto;max-width:210px}
+.phsteps button[draggable]{cursor:grab}
+.phsteps button.dropL{box-shadow:-4px 0 0 var(--gilt2)}
+.phsteps button.dropR{box-shadow:4px 0 0 var(--gilt2)}
+.phsteps button.dragging{opacity:.4}
 .pill{display:inline-block;padding:1px 8px;border-radius:10px;font-weight:600;color:#14110d}
 #drawer{position:fixed;left:0;right:0;bottom:54px;max-height:52vh;background:var(--panel);border-top:1px solid var(--gilt);z-index:6;overflow:auto;padding:8px 14px 14px;display:none}
 #drawer.on{display:block}
@@ -507,7 +511,7 @@ const CATS = [
   {id:'stoup', label:'Baptismal remembrance bowl at the door', opts:YN, cost:v=>v==='yes'?[['stoup',1]]:[]},
   {id:'welcome', label:'Welcome table & bulletin rack', opts:[['asis','In the worship space (as-is)'],['moved','Moved out to the narthex']], cost:v=>v==='moved'?[['welcome',1]]:[]},
 ]},
-{id:'expand', name:'Building expansion', groups:[
+{id:'expand', short:'Expansion', name:'Building expansion', groups:[
   {id:'expNave', label:'Lengthen the nave (entrance end)', opts:[['none','None (as-is)'],['2','Add 2 bays'],['3','Add 3 bays'],['4','Add 4 bays']],
     cost:(v,g)=>v==='none'?[]:[['addNave',g.aAddNave,fq(g.ext)+' ft longer'],['openWall',g.W,'existing end wall']],
     flag:(v,g)=>v==='none'||!g?'':`Adds ${fq(g.ext)} ft of length; room for ${g.maxRows} rows per side — raise "Rows per side" under Layout to use it. The portico and entry are rebuilt. `+'Structural engineer and architect required. Check the buried posts at grade, snow drift on lower roofs, and whether the larger area or occupancy triggers sprinkler, exit or accessibility requirements.'},
@@ -1570,13 +1574,13 @@ $('modal').addEventListener('click', e => { if(e.target.id==='modal') $('modal')
    the cost of each phase is the final-design cost lines of its options, so the phases always add up to the estimate.
    Order: most visible change per dollar first, and nothing installed twice. */
 const PHASES = [
-  {id:'quick',   name:'Quick wins: liturgical focus', why:'Movable furnishings, textiles and small fittings. No construction and no permits, so the room reads differently within weeks.'},
+  {id:'quick', short:'Quick wins', name:'Quick wins: liturgical focus', why:'Movable furnishings, textiles and small fittings. No construction and no permits, so the room reads differently within weeks.'},
   {id:'expand',  name:'Building expansion', why:'Structural work goes before any finish it would damage. Start engineering, permits and bids early: this has the longest lead time.'},
-  {id:'light',   name:'Light, color and cleanup', why:'The largest change in atmosphere per dollar: lighting, paint, and removing visual clutter.'},
-  {id:'chancel', name:'Chancel', why:'Built-in chancel work done as one job, so the chancel is torn up only once.'},
-  {id:'shell',   name:'Ceiling, walls and architecture', why:'Overhead and dusty work, done while the old carpet and chairs are still in place to take the abuse.'},
-  {id:'floor',   name:'Floor and seating', why:'New floors go in after all overhead work; pews are then anchored to the finished floor.'},
-  {id:'gifts',   name:'Glass, organ and memorial gifts', why:'Long-lead items that can each be funded and installed on their own, often as memorials.'},
+  {id:'light', short:'Light & color', name:'Light, color and cleanup', why:'The largest change in atmosphere per dollar: lighting, paint, and removing visual clutter.'},
+  {id:'chancel', short:'Chancel', name:'Chancel', why:'Built-in chancel work done as one job, so the chancel is torn up only once.'},
+  {id:'shell', short:'Ceiling & walls', name:'Ceiling, walls and architecture', why:'Overhead and dusty work, done while the old carpet and chairs are still in place to take the abuse.'},
+  {id:'floor', short:'Floor & seating', name:'Floor and seating', why:'New floors go in after all overhead work; pews are then anchored to the finished floor.'},
+  {id:'gifts', short:'Glass & organ', name:'Glass, organ and memorial gifts', why:'Long-lead items that can each be funded and installed on their own, often as memorials.'},
 ];
 const PH_OF = {}; Object.entries({
   quick:'cross candles frontal lectern credence sedilia flags hymnBoards lamp fontPos fontType procCross paschal season textiles votive prayerCorner confession bell welcome stoup stations consCross',
@@ -1630,9 +1634,9 @@ function phasesHTML(plan, print){
   const col = phCollapsed && !print, seq = ['asis', ...plan.phases.map((p,i) => i), 'final'], ci = seq.indexOf(cur);
   let h = print ? '' : `<h3 style="display:flex;justify-content:space-between;align-items:center;gap:10px"><span>Phased plan — ${esc(loadedName || 'current selections')}</span><button id="phToggle" style="font:13px var(--sans)">${col ? 'Show details ▴' : 'Collapse to buttons ▾'}</button></h3>`;
   if(!col) h += `<div class="note">${plan.phases.length} phases, ${orderChanged() ? 'in your custom order (the suggested order puts the most visible change per dollar first and avoids installing anything twice).' : 'ordered so the most visible change per dollar comes first and nothing is installed twice.'} Each phase total includes ${plan.set.cont}% contingency and ${plan.set.design}% design/permits, and the phases add up to the full estimate (${rng2(plan.C.total.lo, plan.C.total.hi)}).${print ? '' : ' Use the buttons to walk the room as it would look after each phase; use the menus to move an item to a different phase.'}</div>`;
-  if(!print) h += `<div class="phsteps"><span class="note">Preview in 3D:</span><button data-pv="${seq[Math.max(0,ci-1)]}" title="Previous" ${ci<=0?'disabled':''}>◀</button>${btn('asis','As-is')}${plan.phases.map((p,i) => btn(i,'After phase '+(i+1))).join('')}${btn('final','Final design')}<button data-pv="${seq[Math.min(seq.length-1,ci+1)]}" title="Next" ${ci>=seq.length-1?'disabled':''}>▶</button></div>`;
+  if(!print) h += `<div class="phsteps"><span class="note">Click to preview in 3D, drag a phase to reorder:</span><button data-pv="${seq[Math.max(0,ci-1)]}" title="Previous" ${ci<=0?'disabled':''}>◀</button>${btn('asis','As-is')}${plan.phases.map((p,i) => `<button draggable="true" data-phid="${p.id}" data-pv="${i}" class="${cur===i?'on':''}" title="After phase ${i+1}: ${esc(p.name)} — drag to reorder">${i+1} · ${esc(p.short)}</button>`).join('')}${btn('final','Final design')}<button data-pv="${seq[Math.min(seq.length-1,ci+1)]}" title="Next" ${ci>=seq.length-1?'disabled':''}>▶</button></div>`;
   if(col){ const p = typeof cur==='number' ? plan.phases[cur] : null;
-    return h + `<div class="note" style="font-size:13px">${p ? `<b style="color:var(--gilt2)">Phase ${cur+1} · ${esc(p.name)}</b> — this phase ${rng2(p.lo,p.hi)} · running total ${rng2(p.cumLo,p.cumHi)} (${p.pct}%) · ${p.seats} seats · ${p.items.length} items` : cur==='asis' ? 'The existing sanctuary, before any work.' : `<b style="color:var(--gilt2)">Final design</b> — all ${plan.phases.length} phases complete · ${rng2(plan.C.total.lo, plan.C.total.hi)}`}</div>`; }
+    return h + `<div class="note" style="font-size:13px">${p ? `<b style="color:var(--gilt2)">Phase ${cur+1} · ${esc(p.name)}</b> — this phase ${rng2(p.lo,p.hi)} · running total ${rng2(p.cumLo,p.cumHi)} (${p.pct}%) · ${p.seats} seats · ${p.items.length} items` : cur==='asis' ? 'The existing sanctuary, before any work.' : `<b style="color:var(--gilt2)">Final design</b> — all ${plan.phases.length} phases complete · ${rng2(plan.C.total.lo, plan.C.total.hi)}`}${plan.warn.length ? ` <span style="color:var(--warn)">⚠ ${plan.warn.length} sequencing warning${plan.warn.length>1?'s':''} — show details</span>` : ''}</div>`; }
   h += plan.warn.map(w => `<div class="warnbox">⚠ ${esc(w)}</div>`).join('');
   plan.phases.forEach((p,i) => { h += `<div class="phase ${cur===i?'cur':''}"><div class="ph-h"><b>${print ? '' : `<button data-mv="${p.id}:-1" title="Move this phase earlier" ${i===0?'disabled':''} style="padding:1px 7px">▲</button> <button data-mv="${p.id}:1" title="Move this phase later" ${i===plan.phases.length-1?'disabled':''} style="padding:1px 7px">▼</button> `}Phase ${i+1} · ${esc(p.name)}</b><span class="num">${rng2(p.lo,p.hi)} · running total ${rng2(p.cumLo,p.cumHi)} (${p.pct}%)</span></div>
       <div class="note">${esc(p.why)}</div><div class="note"><b>Milestone:</b> ${p.seats} seats · acoustics ${p.ac.label.toLowerCase()} (~${p.ac.rtO.toFixed(1)} s) · ${p.pct}% of the budget committed.</div><table>` +
@@ -1699,6 +1703,17 @@ $('drawer').addEventListener('click', e => { const b = e.target.closest('[data-p
   if(mv && PLAN){ const [id, d] = mv.dataset.mv.split(':'), vis = PLAN.phases.map(p => p.id), other = vis[vis.indexOf(id)+(+d)];
     if(other){ const a = phaseOrder.indexOf(id), b = phaseOrder.indexOf(other); phaseOrder[a] = other; phaseOrder[b] = id; view.phase = null; save(); build(); refreshUI(); } return; }
   if(e.target.id==='phReset'){ phaseOv = {}; phaseOrder = [...PH_DEFAULT]; view.phase = null; save(); build(); refreshUI(); } });
+/* drag a phase button in the strip to reorder the phases */
+let dragPh = null;
+const clearDrop = () => document.querySelectorAll('.dropL,.dropR,.dragging').forEach(b => b.classList.remove('dropL','dropR','dragging'));
+$('drawer').addEventListener('dragstart', e => { const b = e.target.closest && e.target.closest('[data-phid]'); if(!b) return; dragPh = b.dataset.phid; b.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; try{ e.dataTransfer.setData('text/plain', dragPh); }catch(err){} });
+$('drawer').addEventListener('dragover', e => { const b = e.target.closest && e.target.closest('[data-phid]'); if(!b || !dragPh || b.dataset.phid===dragPh) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+  const r = b.getBoundingClientRect(), after = e.clientX > r.left+r.width/2; b.classList.toggle('dropR', after); b.classList.toggle('dropL', !after); });
+$('drawer').addEventListener('dragleave', e => { const b = e.target.closest && e.target.closest('[data-phid]'); if(b) b.classList.remove('dropL','dropR'); });
+$('drawer').addEventListener('drop', e => { const b = e.target.closest && e.target.closest('[data-phid]'); if(!b || !dragPh) return; e.preventDefault();
+  const r = b.getBoundingClientRect(), after = e.clientX > r.left+r.width/2, id = dragPh, tgt = b.dataset.phid; dragPh = null; clearDrop();
+  if(id!==tgt){ phaseOrder = phaseOrder.filter(x => x!==id); phaseOrder.splice(phaseOrder.indexOf(tgt)+(after?1:0), 0, id); view.phase = null; save(); build(); refreshUI(); } });
+$('drawer').addEventListener('dragend', () => { dragPh = null; clearDrop(); });
 $('drawer').addEventListener('change', e => { const id = e.target.dataset.ph; if(!id) return; if(e.target.value===suggestPhase(id, S)[0]) delete phaseOv[id]; else phaseOv[id] = e.target.value; view.phase = null; save(); build(); refreshUI(); });
 $('b-print').onclick = printSummary;
 $('i-cont').onchange = e => { SET.cont = Math.max(0, Math.min(50, parseFloat(e.target.value)||0)); save(); refreshUI(); };
