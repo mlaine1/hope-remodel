@@ -505,7 +505,7 @@ const CATS = [
     cost:(v,g)=>v==='asis'?[]:[[v==='restore'?'glassRestore':'glassNew', g.glassSF]]},
   {id:'sideGlass', label:'Stained glass in side-wall windows', opts:YN, cost:(v,g)=>v==='yes'?[['glassNew',g.sideGlassSF,'side-wall units']]:[]},
   {id:'roseWin', label:'Rose window in the rear gable', opts:YN, cost:(v,g)=>v==='yes'?[['glassNew',g.roseSF,'rose window glass'],['roseFrame',1]]:[],
-    flag:v=>v==='yes'?'New opening in a gable wall: structural review required.':''},
+    flag:v=>v==='yes'?'The gable you see from the nave stands above the entry beam, with the entry roof space behind it, not the outside wall. The window needs a light well framed through that roof space to a matching opening in the outside gable, or LED backlighting. Structural review required.':''},
 ]},
 {id:'projection', name:'Projection', groups:[
   {id:'screens', label:'Screens', opts:[['both','Keep both screens (as-is)'],['motor','Motorized screens, retract into a soffit'],['single','A single smaller screen'],['remove','Remove — bulletins, hymnals, hymn boards'],['flat','Discreet flat panels on side walls only']],
@@ -1116,8 +1116,8 @@ function buildSideWalls(){
     if(s.textiles==='asis'){ const bB = wallB('B', (ea+W/2)/2, 0); if(W/2-ea > 4){ wz(M('#efe9da',{r:.95}), -1.1,1.1,3.6,7.4,0.06,0,bB); ib(M('#d9a13a',{r:.7}), 0.5,2.2,0.02, 0,5.6,0.07,bB); ib(M('#d9a13a',{r:.7}), 1.3,0.3,0.02, 0,6.2,0.07,bB); ib(wood(TRIM), 2.4,0.08,0.08, 0,7.45,0.06,bB); } }
     { const pB = wallB('B', -(ea+W/2)/2, 0); if(W/2-ea > 5.5) for(const dx of [-1.85,0,1.85]){ ib(wood(DKOAK), 1.7,2.4,0.06, dx,5.6,0.04,pB); wz(M('#d9d2c2',{r:.8}), dx-0.7,dx+0.7,4.6,6.6,0.08,0,pB); } }
     if(s.stoup==='yes'){ const b2 = BA(-4.4); cy(M('#d8ceb6',{map:'lime',r:.7}), 0.55,0.3,0.45, 0,3.5,0.5, b2, 8); cy(M('#3a6ea0',{r:.1,m:.3}), 0.46,0.46,0.03, 0,3.72,0.5, b2, 12); ib(M('#d8ceb6',{r:.8}), 0.5,0.9,0.3, 0,3.0,0.15,b2); ib(GOLD(), 0.1,0.7,0.05, 0,4.9,0.04,b2); ib(GOLD(), 0.42,0.1,0.05, 0,5.05,0.04,b2); }
-    if(s.roseWin==='yes'){ const r = G.roseR, y = wallH + G.rise*0.42; sm(new THREE.CircleGeometry(r,40), MB('#ffffff',{map:'rosewin'}), 0,y,0.06, B);
-      sm(new THREE.TorusGeometry(r+0.12,0.22,8,40), M('#d8ceb6',{map:'lime',r:.8}), 0,y,0.08, B); } }
+    if(s.roseWin==='yes'){ const r = G.roseR, y = wallH + G.rise*0.42; const Bg = wallB('B',0,0); sm(new THREE.CircleGeometry(r,40), MB('#ffffff',{map:'rosewin'}), 0,y,0.06, Bg);
+      sm(new THREE.TorusGeometry(r+0.12,0.22,8,40), M('#d8ceb6',{map:'lime',r:.8}), 0,y,0.08, Bg); } }
   // stations of the cross
   if(s.stations==='yes') for(let i=0;i<14;i++){ const wall = i<7 ? 'L' : 'R', k = i<7 ? i : 13-i, z = D*0.12+k*(D*0.8)/6, B = wallB(wall, z, 7.05);
     wz(M('#ffffff',{map:'station:'+i,r:.7}), -0.65,0.65,0,1.6,0.08,0,B); ib(GOLD(), 0.08,0.4,0.05, 0,1.85,0.06,B); ib(GOLD(), 0.26,0.08,0.05, 0,1.9,0.06,B); }
@@ -1248,7 +1248,7 @@ function buildChancel(){
   // flags
   const fx = G.apse ? G.cw/2-1.6 : 0, flag = (x,z,kind) => { const y = G.floorAtL(x,z), P = mat4(x,y,z); cy(BRASS(), 0.45,0.55,0.25, 0,0.12,0, P, 12); cy(BRASS(), 0.05,0.05,8, 0,4,0, P, 6); sp(GOLD(), 0.14, 0,8.1,0, P); ib(M('#ffffff',{map:'flag:'+kind,r:.9}), 1.4,3.8,0.07, 0.55,5.9,0.12, P, 0.35); };
   if(s.flags==='asis'){ flag(-(fx || G.outerPostX+3.2), s.organ!=='asis'&&s.choir!=='rear'&&!G.apse ? 4.2 : 2.2, 'us'); flag(fx || W/2-3, 2.2, 'chr'); }
-  else if(s.flags==='rear'){ flag(-(W/2-2.5), G.D-2-G.cz, 'us'); flag(W/2-2.5, G.D-2-G.cz, 'chr'); }
+  else if(s.flags==='rear'){ { const fxr = Math.min(W/2-1.5, G.ea+1.6); flag(-fxr, G.D-1.6-G.cz, 'us'); flag(fxr, G.D-1.6-G.cz, 'chr'); } }
 }
 
 /* ---------------- ceiling-mounted items, trusses, bays ---------------- */
@@ -1363,28 +1363,32 @@ function pipeCase(B, width, hmax, big){ const dk = wood(DKOAK), om = M('#ffffff'
   if(big){ ib(dk, 0.4,hmax(0)-3.9,1.5, 0,(hmax(0)+3.1)/2,0.5,B); } }
 function buildMusic(){
   const {W,D} = G, s = ST, cY = G.ceilY, rear = s.choir==='rear', loft = s.loft==='yes';
-  const frontX = -(G.pw/2+G.stepsD+4.2);
+  const frontX = -(G.pw/2+G.stepsD+4.2), rearX = Math.min(W/2-14.5, DIM.aisleW/2+3.2);
   if(s.organ==='asis'){ // piano/organ under white cover, small pine stand
     // digital piano: at the rear on the window side today; it follows the choir if a choir area is chosen
     // two instruments today: a piano under a white cover in the front left corner, and a digital piano at the rear on the window side
-    const C = rear ? mat4(-W*0.2,0,D-9,Math.PI) : s.choir==='chancel' ? mat4(Math.max(-W/2+3.5, frontX-0.3), 0, G.zStep+4, 0.12) : mat4(-W/2+4.2, 0, G.apse ? 4.4 : 3.6, 0.1);
+    const C = rear ? mat4(rearX,0,D-9,Math.PI) : s.choir==='chancel' ? mat4(Math.max(-W/2+3.5, frontX-0.3), 0, G.zStep+4, 0.12) : mat4(-W/2+4.2, 0, G.apse ? 4.4 : 3.6, 0.1);
     ib(M('#efece4',{r:1}), 5.2,3.5,2.3, 0,1.75,0,C); ib(M('#e6e2d8',{r:1}), 5.4,0.1,2.5, 0,3.55,0,C);
     const P = mat4(Math.min(W/2-3.5, (G.ea+W/2)/2+0.5), 0, D-2.6, 0), bk = BLACK();
     ib(bk, 4.6,0.45,1.3, 0,2.55,0,P); ib(WHITE(), 4.1,0.05,0.5, 0,2.8,-0.35,P); for(const sx of [-1,1]) ib(bk, 0.14,2.4,1.2, sx*2.2,1.2,0,P); ib(bk, 4.3,0.9,0.1, 0,1.5,0.5,P);
     ib(bk, 2.0,0.12,0.9, 0,1.55,-1.9,P); for(const sx of [-1,1]) ib(bk, 0.1,1.5,0.8, sx*0.9,0.75,-1.9,P); ib(bk, 1.6,1.0,0.05, 0,3.5,0.35,P,0,0); }
   else { const big = s.organ==='pipe', dk = wood(DKOAK);
     // console
-    const C = loft ? mat4(0,8.9,D-6.5,Math.PI) : rear ? mat4(-W*0.2,0,D-10,Math.PI) : mat4(Math.max(-W/2+4, frontX), 0, s.choir==='chancel' ? G.zStep+3.5 : 5.2, 0.5);
+    const C = loft ? mat4(0,8.9,D-6.5,Math.PI) : rear ? mat4(rearX,0,D-9.5,Math.PI) : mat4(Math.max(-W/2+4, frontX), 0, s.choir==='chancel' ? G.zStep+3.5 : 5.2, 0.5);
     ib(M('#ffffff',{map:'panel:#6b4426',r:.5}), 4.8,3.8,2.4, 0,1.9,0,C); ib(dk, 5,0.2,2.8, 0,3.9,-0.2,C); ib(WHITE(), 3.4,0.1,0.6, 0,2.7,1.3,C); ib(BLACK(), 3.4,0.1,0.5, 0,3.0,1.2,C); ib(dk, 3.6,0.2,1.2, 0,1.6,2.6,C); for(const sx of [-1,1]) ib(dk, 0.2,1.6,1.1, sx*1.7,0.8,2.6,C);
     // façade
     if(loft){ const w = big ? 16 : 10; pipeCase(mat4(0,8.9,D,Math.PI), w, x => cY(x)-8.9, big); }
-    else if(rear){ const w = Math.max(4, Math.min(big ? 17 : 10, W/2-G.ea-1.4)), pos = -(G.ea+0.7+w/2); pipeCase(wallB('B',pos,0), w, x => cY(pos-x), big); }
+    else if(rear){ const y0 = G.eH+1.0, B = wallB('B',0,0), sp = Math.max(4, Math.min(G.ea-1, W/2-4, big ? 99 : 13)), gap = s.roseWin==='yes' ? G.roseR+0.9 : 0, st = big ? 0.44 : 0.56;   // pipes on a shelf above the entry beam, flanking the rose window
+      const pm = M('#d2bd78',{m:.4,r:.3,e:'#33280c',ei:.5}), zn = M('#b9bcc0',{m:.4,r:.35}), post = x => { const top = cY(x)-0.4; if(top-y0 > 1) ib(dk, 0.4,top-y0,1.1, x,(top+y0)/2,0.6,B); };
+      ib(dk, 2*sp+0.9,0.35,1.5, 0,y0+0.17,0.75,B); ib(M('#ffffff',{map:'panel:#6b4426',r:.5}), 2*sp+0.5,0.9,1.2, 0,y0+0.8,0.6,B); for(const sx of [-1,1]){ post(sx*(sp+0.25)); if(gap) post(sx*(gap-0.25)); }
+      let i = 0; for(let x=-sp+st/2; x<sp; x+=st, i++){ if(Math.abs(x) < gap+0.2) continue; const top = cY(x)-0.6, u = (Math.abs(x)-gap)/(sp-gap), h = (top-y0-1.3)*(0.5+0.5*Math.abs(Math.cos(Math.PI*u*(big?3:2)))), r = big ? 0.15 : 0.19;
+        if(h > 0.6) cy(i%2&&big?zn:pm, r,r,h, x,y0+1.3+h/2,0.75,B,10); } }
     else { const w = Math.min(big ? 10.5 : 8.5, W/2-(G.apse ? G.cw/2 : G.outerPostX)-1), pos = -(W/2-0.4-w/2); pipeCase(wallB('C',pos,0), w, x => cY(pos+x), big); } }
   // choir stalls
   if(s.choir!=='asis'){ const om = wood(OAK), dk = wood(DKOAK), pn = M('#ffffff',{map:'panel:#8a5c30',r:.5});
     const stall = (P,front) => { ib(om, 10,0.15,1.3, 0,1.45,0,P); ib(pn, 10,3.2,0.15, 0,1.6,0.7,P); for(const x of [-5,0,5]) ib(dk, 0.2,3.3,1.6, x,1.65,0.05,P); if(front){ ib(pn, 10,2.7,0.15, 0,1.35,-1.5,P); ib(dk, 10.2,0.12,0.8, 0,2.75,-1.3,P); } };
     if(s.choir==='chancel'){ const room = W/2-(G.pw/2+G.stepsD)-1; stall(mat4(-(G.pw/2+G.stepsD+3), 0, G.zStep-5.5 > 5 ? G.zStep-5.5 : 5.5, -Math.PI/2), true); if(room>7.5) stall(mat4(-(G.pw/2+G.stepsD+6.2), 0, G.zStep-5.5 > 5 ? G.zStep-5.5 : 5.5, -Math.PI/2), false); }
-    else { const y = loft ? 8.9 : 0, x = loft ? 0 : W*0.24; stall(mat4(x,y,D-(loft?4.2:8.8),0), true); stall(mat4(x,y,D-(loft?1.4:5.6),0), false); } }
+    else { const y = loft ? 8.9 : 0, x = loft ? 0 : W/2-6.5; stall(mat4(x,y,D-(loft?4.2:8.8),0), true); stall(mat4(x,y,D-(loft?1.4:5.6),0), false); } }
 }
 
 /* ---------------- lights ---------------- */
