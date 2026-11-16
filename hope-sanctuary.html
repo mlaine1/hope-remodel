@@ -238,7 +238,7 @@ const DIM_META = [
   ['D','Room depth (chancel wall to the rear beam line)',60,30,140,0.5],
   ['wallH','Side-wall height',10,7,20,0.25],
   ['ridgeH','Ceiling height at ridge',19.5,9,40,0.25],
-  ['platW','Chancel platform width',30,10,80,0.5],
+  ['platW','Chancel platform width (it stops short of the two front doors)',21,10,80,0.5],
   ['platD','Chancel platform depth',12,5,30,0.5],
   ['platH','Chancel platform height (6" per step)',1,0.5,3,0.5],
   ['glassW','Stained-glass group width (4 panels + posts)',19.5,8,40,0.5],
@@ -457,7 +457,7 @@ const CATS = [
   {id:'frontal', label:'Altar vesture', opts:[['asis','Center parament (as-is)'],['full','Full altar frontal']], cost:v=>v==='full'?[['frontal',1]]:[]},
   {id:'pulpit', label:'Pulpit', opts:[['asis','Keep pine pulpit/ambo ($0)'],['elevated','Elevated pulpit with sounding board']], cost:v=>v==='elevated'?[['pulpit',1]]:[]},
   {id:'lectern', label:'Separate lectern', opts:YN, cost:v=>v==='yes'?[['lectern',1]]:[]},
-  {id:'credence', label:'Credence table in the chancel (existing table sits on the nave floor)', opts:YN, cost:v=>v==='yes'?[['credence',1]]:[]},
+  {id:'credence', label:'Credence table', opts:YN, cost:v=>v==='yes'?[['credence',1]]:[]},
   {id:'sedilia', label:'Sedilia in place of presider chair', opts:YN, cost:v=>v==='yes'?[['sedilia',1]]:[]},
   {id:'flags', label:'Flags', opts:[['asis','In the chancel (as-is)'],['rear','Relocate to the rear / narthex'],['remove','Remove from the worship space']], cost:v=>v==='asis'?[]:[['flagsMove',1]]},
 ]},
@@ -535,7 +535,7 @@ const CATS = [
   {id:'moldings', label:'Crown and base moldings', opts:YN, cost:(v,g)=>v==='yes'?[['crown',g.perim],['base',g.perim]]:[]},
 ]},
 {id:'music', name:'Music & acoustics', groups:[
-  {id:'organ', label:'Instrument', opts:[['asis','Keep the digital piano at the rear ($0)'],['digital','Digital organ with decorative pipe façade'],['pipe','Real pipe organ (high cost)']],
+  {id:'organ', label:'Instrument', opts:[['asis','Keep the piano (front left) and digital piano (rear) ($0)'],['digital','Digital organ with decorative pipe façade'],['pipe','Real pipe organ (high cost)']],
     cost:v=>v==='digital'?[['organDigital',1]]:v==='pipe'?[['organPipe',1]]:[], flag:v=>v==='pipe'?'Pipe organs need floor loading, wind and climate review.':''},
   {id:'choir', label:'Organ / choir location', opts:[['asis','No choir area (as-is)'],['chancel','Choir area beside the chancel'],['rear','Choir area at the rear']],
     cost:(v,g)=>v==='asis'?[]:[['choirMove',1],['choirStalls',g.choirLF]]},
@@ -612,7 +612,7 @@ function geo(s){
   g.slopeL = Math.hypot(W/2, rise);
   // platform
   const raised = s.platform==='raised';
-  const apse = s.expChancel==='yes'; g.ext = ext; g.apse = apse; g.cA = apse ? d.expChancelD : 0; g.cz = -g.cA; g.cw = Math.min(W-8, d.platW+4);   // chancel addition lies at z < 0
+  const apse = s.expChancel==='yes'; g.ext = ext; g.apse = apse; g.cA = apse ? d.expChancelD : 0; g.cz = -g.cA; g.cw = Math.min(W-8, d.platW+13);   // chancel addition lies at z < 0
   g.aw = s.expAisle==='right' ? d.expAisleW : 0; g.xR = W/2+g.aw; g.hR = g.aw ? Math.min(9.2, wallH-0.6) : wallH;
   g.pw = apse ? g.cw-0.2 : Math.min(W-6, d.platW + (raised?6:0)); g.pd = apse ? g.cA : Math.min(D*0.4, d.platD + (raised?4:0));
   g.nSteps = raised ? Math.max(3, Math.round(d.platH/0.5)+1) : Math.max(1, Math.round(d.platH/0.5));
@@ -626,7 +626,7 @@ function geo(s){
   const top = x => Math.max(g.sill+1, g.ceilY(x)-0.55); g.glassTop = top;
   g.panels = [[-gw/2+pt, -gw/4-pt/2],[-gw/4+pt/2, -pc/2],[pc/2, gw/4-pt/2],[gw/4+pt/2, gw/2-pt]].map(([x0,x1]) => ({x0,x1,t0:top(x0),t1:top(x1)}));
   g.glassSF = g.panels.reduce((a,p) => a + (p.x1-p.x0)*((p.t0+p.t1)/2-g.sill), 0);
-  g.doorX = Math.min(W/2-3, (gw/2 + g.pw/2)/2 + 0.2);    // sacristy door centers (±)
+  g.doorX = Math.min(W/2-3, gw/2 + 3.3);    // sacristy door centers (±)
   g.outerPostX = Math.min(W/2-1, Math.max(g.doorX+2.3, d.platW/2-0.3));
   if(apse){ g.doorX = Math.min(g.doorX, g.cw/2-2.6); g.outerPostX = Math.min(g.outerPostX, g.cw/2-0.6); }
   // side-wall openings (z measured from the chancel wall)
@@ -1324,8 +1324,7 @@ function buildFurnishings(){
     for(const dx of [-1.3,1.3]){ cy(wood(DKOAK), 0.35,0.4,0.25, dx,0.12,0, P, 8); cy(wood(DKOAK), 0.05,0.05,4.6, dx,2.4,0, P, 6); cy(BRASS(), 0.16,0.07,0.2, dx,4.75,0, P, 8); cy(M('#f3ecd8'), 0.05,0.05,0.8, dx,5.2,0, P, 6); flames.push(sp(MB('#ffd98a'), 0.05, dx,5.7,0, P, 2)); } }
   // furnishings the congregation already owns, shown until a replacement is chosen
   { const freeL = s.choir!=='chancel' && (s.organ==='asis' || s.choir==='rear' || s.loft==='yes'), zc0 = G.cz+3.2, xT = -Math.min(W/2-3, G.pw/2+G.stepsD+3.6);
-    if(s.credence==='no' && freeL && !G.apse){ const P = mat4(xT,0,zc0); ib(wood(PINE), 3.6,3.0,1.8, 0,1.5,0,P); ib(LINEN(), 3.8,3.05,2.0, 0,1.56,0,P); }
-    if(s.paschal==='no' && freeL && !G.apse){ const P = mat4(xT+0.4,0,zc0+2.6); cy(wood(PINE), 0.5,0.6,0.2, 0,0.1,0, P, 8); cy(wood(PINE), 0.1,0.14,3.2, 0,1.8,0, P, 8); cy(BRASS(), 0.22,0.1,0.15, 0,3.45,0, P, 8); cy(M('#f6f0dc',{r:.5}), 0.11,0.11,2.2, 0,4.6,0, P, 10); flames.push(sp(MB('#ffd98a'), 0.06, 0,5.8,0, P, 2)); }
+    if(s.paschal==='no' && freeL && !G.apse){ const P = mat4(-W/2+3.2,0,zc0+3.8); cy(wood(PINE), 0.5,0.6,0.2, 0,0.1,0, P, 8); cy(wood(PINE), 0.1,0.14,3.2, 0,1.8,0, P, 8); cy(BRASS(), 0.22,0.1,0.15, 0,3.45,0, P, 8); cy(M('#f6f0dc',{r:.5}), 0.11,0.11,2.2, 0,4.6,0, P, 10); flames.push(sp(MB('#ffd98a'), 0.06, 0,5.8,0, P, 2)); }
     if(s.procCross==='no'){ const P = mat4(W/2-2.4,0,G.apse ? 2.6 : 5.2), rd = M('#7a2a1c',{r:.6}), gd = M('#d8b04c',{m:.3,r:.45,e:'#3a2a08',ei:.4});   // San Damiano processional crucifix on its brass pole
       cy(BRASS(), 0.45,0.55,0.14, 0,0.07,0, P, 10); cy(BRASS(), 0.06,0.06,5.6, 0,2.9,0, P, 8);
       ib(rd, 0.62,2.5,0.1, 0,6.95,0,P); ib(rd, 1.75,0.85,0.1, 0,7.3,0,P); ib(rd, 0.95,0.5,0.1, 0,8.0,0,P); ib(gd, 0.46,2.3,0.04, 0,6.95,-0.06,P); ib(gd, 1.55,0.65,0.04, 0,7.3,-0.06,P); ib(M('#b98a66',{r:.7}), 0.2,1.5,0.03, 0,6.9,-0.09,P); ib(M('#b98a66',{r:.7}), 1.2,0.14,0.03, 0,7.45,-0.09,P); } }
@@ -1367,7 +1366,10 @@ function buildMusic(){
   const frontX = -(G.pw/2+G.stepsD+4.2);
   if(s.organ==='asis'){ // piano/organ under white cover, small pine stand
     // digital piano: at the rear on the window side today; it follows the choir if a choir area is chosen
-    const P = rear ? mat4(-W*0.2,0,D-9,Math.PI) : s.choir==='chancel' ? mat4(Math.max(-W/2+3.5, frontX-0.3), 0, G.zStep+4, 0.12) : mat4(Math.min(W/2-3.5, (G.ea+W/2)/2+0.5), 0, D-2.6, 0), bk = BLACK();
+    // two instruments today: a piano under a white cover in the front left corner, and a digital piano at the rear on the window side
+    const C = rear ? mat4(-W*0.2,0,D-9,Math.PI) : s.choir==='chancel' ? mat4(Math.max(-W/2+3.5, frontX-0.3), 0, G.zStep+4, 0.12) : mat4(-W/2+4.2, 0, G.apse ? 4.4 : 3.6, 0.1);
+    ib(M('#efece4',{r:1}), 5.2,3.5,2.3, 0,1.75,0,C); ib(M('#e6e2d8',{r:1}), 5.4,0.1,2.5, 0,3.55,0,C);
+    const P = mat4(Math.min(W/2-3.5, (G.ea+W/2)/2+0.5), 0, D-2.6, 0), bk = BLACK();
     ib(bk, 4.6,0.45,1.3, 0,2.55,0,P); ib(WHITE(), 4.1,0.05,0.5, 0,2.8,-0.35,P); for(const sx of [-1,1]) ib(bk, 0.14,2.4,1.2, sx*2.2,1.2,0,P); ib(bk, 4.3,0.9,0.1, 0,1.5,0.5,P);
     ib(bk, 2.0,0.12,0.9, 0,1.55,-1.9,P); for(const sx of [-1,1]) ib(bk, 0.1,1.5,0.8, sx*0.9,0.75,-1.9,P); ib(bk, 1.6,1.0,0.05, 0,3.5,0.35,P,0,0); }
   else { const big = s.organ==='pipe', dk = wood(DKOAK);
@@ -1475,10 +1477,11 @@ const SEED = [
 function cleanState(o){ const s = asisState(); for(const k in s){ if(!(k in (o||{}))) continue; const g = GROUPS[k], v = o[k];
     if(g.num){ if(v==null || (typeof v==='number' && isFinite(v))) s[k] = v; } else if(g.opts.some(op => op[0]===v)) s[k] = v; } return s; }
 function save(){ try{ const costOv = {}; for(const k in COST) if(COST[k].lo!==COST_DEF[k].lo || COST[k].hi!==COST_DEF[k].hi) costOv[k] = [COST[k].lo, COST[k].hi];
-    localStorage.setItem(KEY, JSON.stringify({dv:2, S, DIM, SET, costOv, schemes, phaseOv, phaseOrder, loadedName, seeded})); }catch(e){} }
+    localStorage.setItem(KEY, JSON.stringify({dv:3, S, DIM, SET, costOv, schemes, phaseOv, phaseOrder, loadedName, seeded})); }catch(e){} }
 function load(){ let d = null; try{ d = JSON.parse(localStorage.getItem(KEY)); }catch(e){}
-  const OLD_DIM = {W:50, D:70, aisleW:6.5, rows:12, frontClear:8, rearClear:10, sideWinCount:2, sideWinW:8, sideWinH:7};   // defaults before the Nov 2026 photo update
-  if(d){ if(d.DIM) for(const m of DIM_META) if(typeof d.DIM[m[0]]==='number' && isFinite(d.DIM[m[0]]) && !(!(d.dv>=2) && d.DIM[m[0]]===OLD_DIM[m[0]])) DIM[m[0]] = Math.min(m[4], Math.max(m[3], d.DIM[m[0]]));
+  const OLD_DIM = [[2,{W:50, D:70, aisleW:6.5, rows:12, frontClear:8, rearClear:10, sideWinCount:2, sideWinW:8, sideWinH:7}], [3,{platW:30}]];   // [data version, defaults replaced in that version]
+  const stale = (k,v) => OLD_DIM.some(([ver,o]) => !(d.dv>=ver) && o[k]===v);
+  if(d){ if(d.DIM) for(const m of DIM_META) if(typeof d.DIM[m[0]]==='number' && isFinite(d.DIM[m[0]]) && !stale(m[0], d.DIM[m[0]])) DIM[m[0]] = Math.min(m[4], Math.max(m[3], d.DIM[m[0]]));
     if(d.SET){ if(isFinite(d.SET.cont)) SET.cont = +d.SET.cont; if(isFinite(d.SET.design)) SET.design = +d.SET.design; }
     if(d.costOv) for(const k in d.costOv) if(COST[k]){ COST[k].lo = +d.costOv[k][0]; COST[k].hi = +d.costOv[k][1]; }
     if(d.S) S = cleanState(d.S);
