@@ -234,8 +234,8 @@ window.addEventListener('error', e => { const el=document.getElementById('err');
    ====================================================================== */
 const DIM_META = [
   // key, label, default, min, max, step
-  ['W','Room width (wall to wall)',50,24,90,0.5],
-  ['D','Room depth (chancel wall to rear wall)',70,30,140,0.5],
+  ['W','Room width (wall to wall)',48,24,90,0.5],
+  ['D','Room depth (chancel wall to the rear beam line)',60,30,140,0.5],
   ['wallH','Side-wall height',10,7,20,0.25],
   ['ridgeH','Ceiling height at ridge',19.5,9,40,0.25],
   ['platW','Chancel platform width',30,10,80,0.5],
@@ -243,17 +243,18 @@ const DIM_META = [
   ['platH','Chancel platform height (6" per step)',1,0.5,3,0.5],
   ['glassW','Stained-glass group width (4 panels + posts)',19.5,8,40,0.5],
   ['glassSill','Stained-glass sill height above floor',11.5,6,25,0.25],
-  ['aisleW','Center aisle width',6.5,3,16,0.5],
-  ['rows','Seating rows per side',12,1,40,1],
+  ['aisleW','Center aisle width',8,3,16,0.5],
+  ['rows','Seating rows per side',9,1,40,1],
   ['perRow','Chairs per row (each side)',8,1,20,1],
   ['rowSpacing','Row spacing, back to back',3.2,2.5,5,0.1],
   ['chairW','Seat width (chair or pew space)',1.67,1.4,2.2,0.01],
-  ['frontClear','Clear floor: chancel step to first row',8,3,25,0.5],
-  ['rearClear','Clear floor: last row to rear wall',10,3,40,0.5],
-  ['sideWinCount','Right-wall glass door/window units',2,0,6,1],
-  ['sideWinW','Width of each glass unit',8,3,16,0.5],
-  ['sideWinH','Height of each glass unit',7,3,10,0.25],
-  ['narthexD','Narthex / entry zone depth (if added)',10,6,20,0.5],
+  ['frontClear','Clear floor: chancel step to first row',7,3,25,0.5],
+  ['rearClear','Clear floor: last row to rear wall',12,3,40,0.5],
+  ['sideWinCount','Right-wall window pairs',3,0,6,1],
+  ['sideWinW','Width of each window pair',5.5,3,16,0.5],
+  ['sideWinH','Height of each window pair',5.5,3,10,0.25],
+  ['entryW','Entry alcove width (under the rear beam)',28,10,60,0.5],
+  ['entryD','Entry alcove depth',8,4,20,0.5],
   ['bay','Bay spacing (trusses, pilasters, pendants)',11.5,6,20,0.5],
   ['expBay','Expansion: added bay length (post spacing)',8,6,16,0.5],
   ['expChancelD','Expansion: chancel addition depth',16,10,30,1],
@@ -456,7 +457,7 @@ const CATS = [
   {id:'frontal', label:'Altar vesture', opts:[['asis','Center parament (as-is)'],['full','Full altar frontal']], cost:v=>v==='full'?[['frontal',1]]:[]},
   {id:'pulpit', label:'Pulpit', opts:[['asis','Keep pine pulpit/ambo ($0)'],['elevated','Elevated pulpit with sounding board']], cost:v=>v==='elevated'?[['pulpit',1]]:[]},
   {id:'lectern', label:'Separate lectern', opts:YN, cost:v=>v==='yes'?[['lectern',1]]:[]},
-  {id:'credence', label:'Credence table', opts:YN, cost:v=>v==='yes'?[['credence',1]]:[]},
+  {id:'credence', label:'Credence table in the chancel (existing table sits on the nave floor)', opts:YN, cost:v=>v==='yes'?[['credence',1]]:[]},
   {id:'sedilia', label:'Sedilia in place of presider chair', opts:YN, cost:v=>v==='yes'?[['sedilia',1]]:[]},
   {id:'flags', label:'Flags', opts:[['asis','In the chancel (as-is)'],['rear','Relocate to the rear / narthex'],['remove','Remove from the worship space']], cost:v=>v==='asis'?[]:[['flagsMove',1]]},
 ]},
@@ -519,8 +520,8 @@ const CATS = [
 {id:'font', name:'Font & furnishings', groups:[
   {id:'fontPos', label:'Font location', opts:[['asis','Center aisle toward the rear (as-is)'],['entrance','At the entrance']], cost:v=>v==='entrance'?[['fontMove',1]]:[]},
   {id:'fontType', label:'Font', opts:[['asis','Keep octagonal oak font ($0)'],['oak','Larger octagonal oak font with cover'],['stone','Stone font']], cost:v=>v==='oak'?[['fontOak',1]]:v==='stone'?[['fontStone',1]]:[]},
-  {id:'procCross', label:'Processional cross and torches', opts:YN, cost:v=>v==='yes'?[['procCross',1]]:[]},
-  {id:'paschal', label:'Paschal candle stand', opts:YN, cost:v=>v==='yes'?[['paschal',1]]:[]},
+  {id:'procCross', label:'New processional cross and torches (the San Damiano crucifix is already owned)', opts:YN, cost:v=>v==='yes'?[['procCross',1]]:[]},
+  {id:'paschal', label:'New paschal candle stand at the font (existing candle stays up front if off)', opts:YN, cost:v=>v==='yes'?[['paschal',1]]:[]},
   {id:'rood', label:'Rood beam with crucifix over the chancel step', opts:YN, cost:v=>v==='yes'?[['rood',1]]:[], flag:v=>v==='yes'?'Beam span and posts need structural review.':''},
 ]},
 {id:'doors', name:'Doors, windows & details', groups:[
@@ -534,9 +535,9 @@ const CATS = [
   {id:'moldings', label:'Crown and base moldings', opts:YN, cost:(v,g)=>v==='yes'?[['crown',g.perim],['base',g.perim]]:[]},
 ]},
 {id:'music', name:'Music & acoustics', groups:[
-  {id:'organ', label:'Instrument', opts:[['asis','Keep piano/organ under cover ($0)'],['digital','Digital organ with decorative pipe façade'],['pipe','Real pipe organ (high cost)']],
+  {id:'organ', label:'Instrument', opts:[['asis','Keep the digital piano at the rear ($0)'],['digital','Digital organ with decorative pipe façade'],['pipe','Real pipe organ (high cost)']],
     cost:v=>v==='digital'?[['organDigital',1]]:v==='pipe'?[['organPipe',1]]:[], flag:v=>v==='pipe'?'Pipe organs need floor loading, wind and climate review.':''},
-  {id:'choir', label:'Organ / choir location', opts:[['asis','Front left (as-is), no choir area'],['chancel','Choir area beside the chancel'],['rear','Choir area at the rear']],
+  {id:'choir', label:'Organ / choir location', opts:[['asis','No choir area (as-is)'],['chancel','Choir area beside the chancel'],['rear','Choir area at the rear']],
     cost:(v,g)=>v==='asis'?[]:[['choirMove',1],['choirStalls',g.choirLF]]},
   {id:'loft', label:'Small rear choir / organ loft', opts:YN, cost:v=>v==='yes'?[['loft',1]]:[], flag:v=>v==='yes'?'STRUCTURAL WORK: new framing, footings, stair, guardrail, egress. Engineer + permit required. Headroom is tight under this roof.':''},
   {id:'speakers', label:'Box speakers', opts:[['asis','Keep white boxes (as-is)'],['paint','Paint to match'],['column','Replace with column line arrays']],
@@ -553,9 +554,9 @@ const CATS = [
   {id:'aumbry', label:'Aumbry (wall niche for sacred vessels)', opts:YN, cost:v=>v==='yes'?[['aumbry',1]]:[]},
 ]},
 {id:'narthex', name:'Entrance & narthex', groups:[
-  {id:'narthex', label:'Defined narthex at the rear', opts:[['none','None (as-is)'],['screen','Wood screen with glass'],['half','Half wall']],
-    cost:(v,g)=>v==='screen'?[['narthexScreen',g.W]]:v==='half'?[['halfWall',g.W-8]]:[], flag:(v,g)=>v!=='none'&&g?'Narthex takes '+DIM.narthexD+' ft of depth; seat count is updated.':''},
-  {id:'entryFloor', label:'Entry floor', opts:[['asis','Carpet (as-is)'], ...fo(['porcelain','slate','limestone'])], cost:(v,g)=>floorCost(v,g.aEntry)},
+  {id:'narthex', label:'Defined narthex at the rear', opts:[['none','Open entry alcove under the beam (as-is)'],['screen','Wood screen with glass'],['half','Half wall']],
+    cost:(v,g)=>v==='screen'?[['narthexScreen',2*g.ea]]:v==='half'?[['halfWall',Math.max(1,2*g.ea-8)]]:[], flag:v=>v!=='none'?'Built between the existing entry posts, so the alcove becomes the narthex and no seating is lost.':''},
+  {id:'entryFloor', label:'Entry floor', opts:[['asis','Dark tile in the entry alcove (as-is)'], ...fo(['porcelain','slate','limestone'])], cost:(v,g)=>floorCost(v,g.aEntry)},
   {id:'stoup', label:'Baptismal remembrance bowl at the door', opts:YN, cost:v=>v==='yes'?[['stoup',1]]:[]},
   {id:'welcome', label:'Welcome table & bulletin rack', opts:[['asis','In the worship space (as-is)'],['moved','Moved out to the narthex']], cost:v=>v==='moved'?[['welcome',1]]:[]},
 ]},
@@ -607,6 +608,7 @@ function geo(s){
   const d = DIM, W = d.W, ext = s.expNave==='none' ? 0 : +s.expNave*d.expBay, D = d.D+ext, wallH = d.wallH, ridgeH = Math.max(d.ridgeH, wallH+1), rise = ridgeH-wallH;
   const g = {W, D, wallH, ridgeH, rise, warn:[]};
   g.ceilY = x => wallH + (1-Math.min(1, Math.abs(x)/(W/2)))*rise;
+  g.ea = Math.max(3, Math.min(d.entryW/2, W/2-4)); g.eD = d.entryD; g.eH = Math.min(8.3, wallH-1.3);   // existing entry alcove behind the rear beam: half-width, depth, ceiling
   g.slopeL = Math.hypot(W/2, rise);
   // platform
   const raised = s.platform==='raised';
@@ -628,12 +630,12 @@ function geo(s){
   g.outerPostX = Math.min(W/2-1, Math.max(g.doorX+2.3, d.platW/2-0.3));
   if(apse){ g.doorX = Math.min(g.doorX, g.cw/2-2.6); g.outerPostX = Math.min(g.outerPostX, g.cw/2-0.6); }
   // side-wall openings (z measured from the chancel wall)
-  g.openL = [{k:'door', z:D*0.14, w:3, h:6.8, y:0}, {k:'win', z:D*0.335, w:5, h:4.5, y:2.8}, {k:'door2', z:D-7, w:5, h:6.8, y:0}];
+  g.openL = [{k:'door', z:D*0.14, w:3, h:6.8, y:0}, {k:'win', z:D*0.4, w:6.5, h:4.3, y:2.9}, {k:'door2', z:D-9, w:6, h:6.8, y:0}];
   g.openR = [{k:'exit', z:D*0.17, w:3, h:6.8, y:0}];
-  const n = d.sideWinCount, z0 = D*0.4, z1 = D-12;
-  for(let i=0;i<n;i++) g.openR.push({k:'glass', z: n===1 ? z0 : z0 + (z1-z0)*i/(n-1), w:d.sideWinW, h:Math.min(d.sideWinH, wallH-1.6), y:0});
+  const n = d.sideWinCount, z0 = D*0.4, z1 = D-9, wy = 1.5, wh = Math.min(d.sideWinH, wallH-1.6-wy);
+  for(let i=0;i<n;i++) g.openR.push({k:'glass', z: n===1 ? z0 : z0 + (z1-z0)*i/(n-1), w:d.sideWinW, h:wh, y:wy});
   g.nOpen = g.openL.length + g.openR.length;
-  g.sideGlassSF = n*d.sideWinW*Math.min(d.sideWinH, wallH-1.6)*0.7;
+  g.sideGlassSF = n*d.sideWinW*wh*0.7;
   // bays
   g.bays = Math.max(2, Math.round(D/d.bay)); g.bayL = D/g.bays;
   g.trussZ = []; for(let i=1;i<g.bays;i++) g.trussZ.push(i*g.bayL);
@@ -652,7 +654,7 @@ function geo(s){
   g.fanZ = [D*0.25, D*0.5, D*0.75];
   g.nProj = s.screens==='both'||s.screens==='motor' ? 2 : s.screens==='single' ? 1 : 0;
   // narthex / seating zone
-  g.narthexOn = s.narthex!=='none'; g.nD = Math.min(d.narthexD, D*0.3);
+  g.narthexOn = s.narthex!=='none'; g.nD = 0;   // a narthex screen sits on the existing beam line, so it takes no nave depth
   g.zNarthex = D-g.nD;
   const anti = s.arrange==='antiphonal';
   g.aisle = Math.min(W-10, anti ? Math.max(lay(s,'aisleW'), 10) : lay(s,'aisleW'));
@@ -682,10 +684,10 @@ function geo(s){
   // areas
   g.aAddNave = W*ext; g.aAddChancel = W*g.cA; g.aAddAisle = g.aw*D;
   g.aChancel = apse ? g.cw*g.cA + (g.pw+2*g.stepsD)*g.stepsD : (g.pw+2*g.stepsD)*(g.pd+g.stepsD);
-  g.aEntry = (g.narthexOn ? W : Math.min(W,14))*g.nD;
-  const entryCut = s.entryFloor!=='asis';
+  g.aEntry = 2*g.ea*g.eD + (g.narthexOn ? W*g.nD : 0);     // the alcove, plus the narthex zone when one is defined
+  const entryCut = s.entryFloor!=='asis' && g.narthexOn;
   g.aAisle = g.aisle*(D - g.zStep - (entryCut?g.nD:0));
-  g.aSeat = W*D + g.cw*g.cA + g.aAddAisle - g.aChancel - g.aAisle - (entryCut ? g.aEntry : 0);
+  g.aSeat = W*D + g.cw*g.cA + g.aAddAisle - g.aChancel - g.aAisle - (entryCut ? W*g.nD : 0);
   const openA = L => L.reduce((a,o) => a+o.w*o.h, 0);
   g.wallSide = 2*D*wallH - openA(g.openL) - openA(g.openR);
   const gable = W*wallH + W*rise/2;
@@ -1013,16 +1015,16 @@ function wallMats(){ const s = ST, base = PAINTS[s.wallPaint];
   else if(s.chancelPaint==='diaper') ch = [M('#ffffff',{map:'diaper:#6a1f1f',r:.9}),7];
   else ch = [M(PAINTS[s.chancelPaint],{r:.95}),0];
   return {side, ch}; }
-function gableGeo(ft){ const {W,wallH,ridgeH} = G, s2 = new THREE.Shape(); s2.moveTo(-W/2,0); s2.lineTo(W/2,0); s2.lineTo(W/2,wallH); s2.lineTo(0,ridgeH); s2.lineTo(-W/2,wallH); s2.closePath();
+function gableGeo(ft, notch){ const {W,wallH,ridgeH} = G, s2 = new THREE.Shape(); s2.moveTo(-W/2,0); if(notch){ s2.lineTo(-G.ea,0); s2.lineTo(-G.ea,G.eH); s2.lineTo(G.ea,G.eH); s2.lineTo(G.ea,0); } s2.lineTo(W/2,0); s2.lineTo(W/2,wallH); s2.lineTo(0,ridgeH); s2.lineTo(-W/2,wallH); s2.closePath();
   const ge = new THREE.ShapeGeometry(s2); if(ft){ const uv = ge.attributes.uv; for(let i=0;i<uv.count;i++) uv.setXY(i, uv.getX(i)/ft, uv.getY(i)/ft); } return ge; }
 function buildShell(){
   const {W,D,wallH,ridgeH,rise} = G, s = ST;
   const fm = f => M('#ffffff', {map:f.tex, r:f.r});
   const fs = s.floorSeat==='asis' ? FLOORS.seatAsis : FLOORS[s.floorSeat];
   fl(fm(fs), -W/2, G.xR, G.cz, D, 0, fs.ft);
-  const entry = s.entryFloor!=='asis', at = aisleType(s);
-  if(at!=='asis' && s.floorAisle!=='same'){ const fa = FLOORS[at]; fl(fm(fa), -G.aisle/2, G.aisle/2, G.zStep, D-(entry?G.nD:0), 0.012, at==='runner' ? [0,G.aisle] : fa.ft); }
-  if(entry){ const fe = FLOORS[s.entryFloor], hw = (G.narthexOn ? W : Math.min(W,14))/2; fl(fm(fe), -hw, hw, G.zNarthex, D, 0.016, fe.ft); }
+  const entry = s.entryFloor!=='asis', at = aisleType(s), ea = G.ea, eD = G.eD, eH = G.eH, rearSeg = f => { f(-W/2,-ea); f(ea,W/2); };
+  if(at!=='asis' && s.floorAisle!=='same'){ const fa = FLOORS[at]; fl(fm(fa), -G.aisle/2, G.aisle/2, G.zStep, D-(entry&&G.narthexOn?G.nD:0), 0.012, at==='runner' ? [0,G.aisle] : fa.ft); }
+  { const fe = entry ? FLOORS[s.entryFloor] : FLOORS.slate; fl(fm(fe), -ea, ea, D, D+eD, 0.004, fe.ft); if(entry && G.narthexOn) fl(fm(fe), -W/2, W/2, G.zNarthex, D, 0.016, fe.ft); }
   // walls
   const {side, ch} = wallMats();
   wx(side[0], -W/2, 0, D, 0, wallH, 1, side[1]);
@@ -1037,19 +1039,24 @@ function buildShell(){
   if(G.apse){ const c2 = G.cw/2, hc = G.ceilY(c2);   // chancel addition: side walls, and what is left of the old gable wall
     wx(ch[0], -c2, G.cz, 0, 0, hc, 1, ch[1]); wx(ch[0], c2, G.cz, 0, 0, hc, -1, ch[1]);
     Q(side[0], [-W/2,0,0],[-c2,0,0],[-c2,hc,0],[-W/2,wallH,0], side[1]); Q(side[0], [c2,0,0],[W/2,0,0],[W/2,wallH,0],[c2,hc,0], side[1]); }
-  const rear = sm(gableGeo(side[1]), side[0], 0,0,D); rear.rotation.y = Math.PI;
+  const rear = sm(gableGeo(side[1], true), side[0], 0,0,D); rear.rotation.y = Math.PI;
+  // entry alcove behind the rear beam: low ceiling, timber posts, tile floor
+  wz(side[0], -ea, ea, 0, eH, D+eD, side[1], null, -1); wx(side[0], -ea, D, D+eD, 0, eH, 1, side[1]); wx(side[0], ea, D, D+eD, 0, eH, -1, side[1]);
+  Q(M('#f0ece2',{r:.95}), [-ea,eH,D],[ea,eH,D],[ea,eH,D+eD],[-ea,eH,D+eD]);
+  { const tm = wood(POST); ib(tm, 2*ea+1.4,0.95,0.7, 0,eH+0.47,D); for(const x of [-ea,-ea/3,ea/3,ea]) ib(tm, 0.7,eH,0.7, x,eH/2,D);
+    for(const x of [-ea*0.67,0,ea*0.67]){ cy(MB('#fff1d0'), 0.28,0.28,0.04, x,eH-0.03,D+eD*0.45, null, 12); } }
   // wainscot
   if(s.wainscot!=='none'){ const h = +s.wainscot, pm = M('#ffffff',{map:'panel:#8a5c30',r:.55}), cap = wood(DKOAK);
-    wx(pm, -W/2+0.05, 0, D, 0, h, 1, [h,h]); wx(pm, G.xR-0.05, 0, D, 0, h, -1, [h,h]); wz(pm, -W/2, W/2, 0, h, D-0.05, [h,h], null, -1);
-    ib(cap, 0.22,0.14,D, -W/2+0.12,h,D/2); ib(cap, 0.22,0.14,D, G.xR-0.12,h,D/2); ib(cap, W,0.14,0.22, 0,h,D-0.12); }
+    wx(pm, -W/2+0.05, 0, D, 0, h, 1, [h,h]); wx(pm, G.xR-0.05, 0, D, 0, h, -1, [h,h]); rearSeg((a,b) => wz(pm, a, b, 0, h, D-0.05, [h,h], null, -1));
+    ib(cap, 0.22,0.14,D, -W/2+0.12,h,D/2); ib(cap, 0.22,0.14,D, G.xR-0.12,h,D/2); rearSeg((a,b) => ib(cap, b-a,0.14,0.22, (a+b)/2,h,D-0.12)); }
   // gilt band / stencil border
   if(s.stencil!=='none'){ const st = s.stencil==='stencil', bh = st ? 0.9 : 0.28, y0 = wallH-2.5, y1 = y0+bh;
     const bm = st ? M('#ffffff',{map:'band:'+(s.wallPaint==='oxblood'?'#1d2f5a':'#5e1a1c')+':stencil', r:.7}) : GOLD(), ft = st ? [bh*4,bh] : 0;
-    wx(bm, -W/2+0.07, 0, D, y0, y1, 1, ft); wx(bm, G.xR-0.07, 0, D, y0, y1, -1, ft); wz(bm, -W/2, W/2, y0, y1, D-0.07, ft, null, -1);
+    wx(bm, -W/2+0.07, 0, D, y0, y1, 1, ft); wx(bm, G.xR-0.07, 0, D, y0, y1, -1, ft); rearSeg((a,b) => wz(bm, a, b, y0, y1, D-0.07, ft, null, -1));
     const inr = G.apse ? G.cw/2 : G.gw/2; wz(bm, -W/2, -inr, y0, y1, 0.07, ft); wz(bm, inr, W/2, y0, y1, 0.07, ft); }
   if(s.moldings==='yes'){ const mm = wood(OAK);
     for(const sx of [-1,1]){ const xw = sx>0 ? G.xR : W/2, hw = sx>0 ? G.hR : wallH; ib(mm, 0.45,0.5,D, sx*(xw-0.22), hw-0.25, D/2); ib(mm, 0.14,0.6,D, sx*(xw-0.07), 0.3, D/2); }
-    ib(mm, W,0.6,0.14, 0,0.3,D-0.07); ib(mm, W,0.5,0.4, 0,wallH-0.25,D-0.2); if(!G.apse) ib(mm, W,0.5,0.3, 0,wallH-0.25,0.15); }
+    rearSeg((a,b) => ib(mm, b-a,0.6,0.14, (a+b)/2,0.3,D-0.07)); ib(mm, W,0.5,0.4, 0,wallH-0.25,D-0.2); if(!G.apse) ib(mm, W,0.5,0.3, 0,wallH-0.25,0.15); }
   // ceiling
   const cf = s.ceilFinish, cm = cf==='asis' ? [M('#ffffff',{map:'popcorn',r:1}),6] : cf==='smooth' ? [M('#f3eee1',{r:.9}),0] : cf==='tg' ? [M('#ffffff',{map:'tg:#8f6a42',r:.9}),4] : [M('#ffffff',{map:'coffer',r:.7}),8];
   Q(cm[0], [-W/2,wallH,G.cz],[0,ridgeH,G.cz],[0,ridgeH,D],[-W/2,wallH,D], cm[1]);
@@ -1079,12 +1086,15 @@ function buildSideWalls(){
       if(s.sacDoors==='asis'){ frame(B,w,h,y,trim); wz(M('#2b2521',{r:1}), -w/2,w/2,y,y+h,0.05,0,B); }
       else archDoor(B,w,h,s.sacDoors); }
     else if(o.k==='win'){ frame(B,w,h,y,trim); wz(M('#b9c0bd',{r:.15,m:.3}), -w/2,w/2,y,y+h,0.05,0,B); ib(trim, 0.12,h,0.1, 0,y+h/2,0.07,B); if(lanc) lancet(B,w,h,y,wood(OAK)); }
-    else if(o.k==='door2'){ frame(B,w,h,y,trim); for(const sx of [-1,1]){ ib(wood('#7b4f2e'), w/2-0.05,h,0.1, sx*w/4,h/2,0.06,B); ib(BRASS(), 0.08,0.5,0.1, sx*0.25,3.3,0.14,B); } if(lanc) lancet(B,w,h,y,wood(OAK)); }
+    else if(o.k==='door2'){ frame(B,w,h,y,trim,0.4);   // glazed double doors to the wing
+      for(const sx of [-1,1]){ ib(M('#e4e2dc',{r:.6}), w/2-0.05,h,0.1, sx*w/4,h/2,0.06,B); wz(M('#9fb1b3',{r:.12,m:.3}), sx*w/4-w/4+0.45, sx*w/4+w/4-0.45, 0.9, h-0.5, 0.12, 0, B); ib(BRASS(), 0.3,0.9,0.05, sx*0.28,3.4,0.13,B); ib(M('#8d8f92',{m:.4,r:.4}), 1.1,0.14,0.2, sx*(w/4+0.2),h-0.12,0.2,B); }
+      if(lanc) lancet(B,w,h,y,wood(OAK)); }
     else if(o.k==='exit'){ frame(B,w,h,y,trim); ib(M('#e6dfcd',{r:.7}), w,h,0.1, 0,h/2,0.06,B); wz(s.sideGlass==='yes'?stained:outside, -w/2+0.5,w/2-0.5,3.4,h-0.5,0.12,0,B); ib(BRASS(), 0.5,0.08,0.12, w/2-0.6,3.2,0.14,B);
       exitSign(B, h+1.05); if(lanc) lancet(B,w,h,y,wood(OAK)); }
-    else if(o.k==='glass'){ frame(B,w,h,y,trim,0.4); const n = Math.max(2, Math.round(w/2.6)), lw = w/n, gm = s.sideGlass==='yes' ? stained : outside;
-      for(let i=0;i<n;i++){ const x = -w/2+(i+.5)*lw; ib(WHITE(), lw-0.06,h,0.08, x,h/2,0.05,B); wz(gm, x-lw/2+0.3, x+lw/2-0.3, 0.7, h-0.35, 0.1, 0, B); ib(trim, 0.1,h,0.14, x-lw/2,h/2,0.07,B);
-        if(lanc) lancet(B, lw-0.3, h, y, s.sideGlass==='yes' ? stained : wood(OAK)); } }
+    else if(o.k==='glass'){ frame(B,w,h,y,trim,0.4); const mw = Math.min(0.9, w*0.18), lw = (w-mw)/2, gm = s.sideGlass==='yes' ? stained : outside;   // a pair of tall casements with a timber mullion
+      ib(trim, mw,h,0.14, 0,y+h/2,0.07,B);
+      for(const sx of [-1,1]){ const x = sx*(mw+lw)/2; ib(WHITE(), lw,h,0.08, x,y+h/2,0.05,B); wz(gm, x-lw/2+0.2, x+lw/2-0.2, y+0.2, y+h-0.2, 0.1, 0, B);
+        if(lanc) lancet(B, lw, h, y, s.sideGlass==='yes' ? stained : wood(OAK)); } }
   });
   each('L', G.openL); each('R', G.openR);
   // hymn boards
@@ -1093,10 +1103,19 @@ function buildSideWalls(){
     sm(archHeadGeo(w,hs,'gothic',r,true), M('#ffffff',{map:'hymnboard:'+(imp?'new':'old'), r:.6}), 0,0,0.1, B);
     if(imp) sm(archFrameGeo(w,hs,'gothic',r,0.16,0.16), wood(DKOAK), 0,0,0.02, B); else ib(wood('#b98a4e'), w,0.1,0.1, 0,0,0.05,B); }
   // rear wall: entrance doors
-  { const B = wallB('B', 0, 0), w = 6, h = 7; frame(B,w,h,0,trim,0.4);
-    for(const sx of [-1,1]){ ib(wood('#7b4f2e'), w/2-0.04,h,0.1, sx*w/4,h/2,0.06,B); wz(outside, sx*w/4-0.9, sx*w/4+0.9, 3.2, 6.3, 0.12, 0, B); ib(BRASS(), 0.08,0.7,0.1, sx*0.3,3.4,0.15,B); }
-    exitSign(B, h+1.1);
-    if(s.stoup==='yes'){ const b2 = wallB('B', -4.4, 0); cy(M('#d8ceb6',{map:'lime',r:.7}), 0.55,0.3,0.45, 0,3.5,0.5, b2, 8); cy(M('#3a6ea0',{r:.1,m:.3}), 0.46,0.46,0.03, 0,3.72,0.5, b2, 12); ib(M('#d8ceb6',{r:.8}), 0.5,0.9,0.3, 0,3.0,0.15,b2); ib(GOLD(), 0.1,0.7,0.05, 0,4.9,0.04,b2); ib(GOLD(), 0.42,0.1,0.05, 0,5.05,0.04,b2); }
+  { const ea = G.ea, eH = G.eH, BA = x => mat4(x,0,D+G.eD,Math.PI), B = BA(0), w = 6, h = 6.9; frame(B,w,h,0,trim,0.4);   // French doors on the back wall of the entry alcove
+    for(const sx of [-1,1]){ ib(M('#eceae4',{r:.6}), w/2-0.04,h,0.1, sx*w/4,h/2,0.06,B); wz(outside, sx*w/4-1.05, sx*w/4+1.05, 0.9, h-0.5, 0.12, 0, B); ib(BRASS(), 0.12,0.12,0.14, sx*0.25,3.3,0.16,B); }
+    exitSign(B, Math.min(h+0.85, eH-0.4));
+    for(const sx of [-1,1]){ const wB = BA(sx*(ea/3+Math.min(2.3,ea*0.17))), cB = BA(sx*(ea-Math.min(2.4,ea*0.2)));     // narrow window and closet door in each side bay
+      frame(wB,1.7,5.2,1.5,trim,0.35); ib(WHITE(), 1.7,5.2,0.08, 0,4.1,0.05,wB); wz(outside, -0.65,0.65,1.7,6.5,0.1,0,wB);
+      if(ea>8){ frame(cB,2.8,6.6,0,trim,0.35); wz(M('#2b2521',{r:1}), -1.4,1.4,0,6.6,0.05,0,cB); }
+      const gB = wallB('B', sx*Math.min(W/2-2.6, ea+3.4), 0); ib(M('#e9e7e1',{r:.6}), 4.2,1.3,0.1, 0,eH+0.4,0.05,gB); for(let i=0;i<4;i++) ib(M('#9a9c9e',{r:.7}), 3.9,0.08,0.05, 0,eH-0.05+i*0.3,0.11,gB); }
+    if(s.roseWin!=='yes'){ const yb = eH+1.4, top = G.ceilY(0), yr = Math.min(top-1.6, yb+2.3), Bq = wallB('B',0,0), face = Bq.clone().multiply(new THREE.Matrix4().makeRotationX(Math.PI/2));   // Luther rose and clock on the gable
+      if(yr-yb > 1.2){ cy(M('#3f78b8',{r:.6}), 0.95,0.95,0.06, 0,0.03,-yr, face, 28); cy(M('#f4f2ec',{r:.7}), 0.8,0.8,0.08, 0,0.04,-yr, face, 10); cy(M('#b3202a',{r:.6}), 0.38,0.38,0.1, 0,0.05,-yr, face, 16); ib(BLACK(), 0.09,0.42,0.04, 0,yr,0.12,Bq); ib(BLACK(), 0.3,0.09,0.04, 0,yr+0.07,0.12,Bq);
+        cy(M('#f4f2ec',{r:.5}), 0.42,0.42,0.06, 0,0.03,-yb, face, 20); ib(BLACK(), 0.03,0.26,0.02, 0,yb+0.12,0.07,Bq); ib(BLACK(), 0.2,0.03,0.02, 0.09,yb,0.07,Bq); } }
+    if(s.textiles==='asis'){ const bB = wallB('B', (ea+W/2)/2, 0); if(W/2-ea > 4){ wz(M('#efe9da',{r:.95}), -1.1,1.1,3.6,7.4,0.06,0,bB); ib(M('#d9a13a',{r:.7}), 0.5,2.2,0.02, 0,5.6,0.07,bB); ib(M('#d9a13a',{r:.7}), 1.3,0.3,0.02, 0,6.2,0.07,bB); ib(wood(TRIM), 2.4,0.08,0.08, 0,7.45,0.06,bB); } }
+    { const pB = wallB('B', -(ea+W/2)/2, 0); if(W/2-ea > 6) for(const dx of [-2.1,0,2.1]){ ib(wood(DKOAK), 1.7,2.4,0.06, dx,5.6,0.04,pB); wz(M('#d9d2c2',{r:.8}), dx-0.7,dx+0.7,4.6,6.6,0.08,0,pB); } }
+    if(s.stoup==='yes'){ const b2 = BA(-4.4); cy(M('#d8ceb6',{map:'lime',r:.7}), 0.55,0.3,0.45, 0,3.5,0.5, b2, 8); cy(M('#3a6ea0',{r:.1,m:.3}), 0.46,0.46,0.03, 0,3.72,0.5, b2, 12); ib(M('#d8ceb6',{r:.8}), 0.5,0.9,0.3, 0,3.0,0.15,b2); ib(GOLD(), 0.1,0.7,0.05, 0,4.9,0.04,b2); ib(GOLD(), 0.42,0.1,0.05, 0,5.05,0.04,b2); }
     if(s.roseWin==='yes'){ const r = G.roseR, y = wallH + G.rise*0.42; sm(new THREE.CircleGeometry(r,40), MB('#ffffff',{map:'rosewin'}), 0,y,0.06, B);
       sm(new THREE.TorusGeometry(r+0.12,0.22,8,40), M('#d8ceb6',{map:'lime',r:.8}), 0,y,0.08, B); } }
   // stations of the cross
@@ -1104,7 +1123,7 @@ function buildSideWalls(){
     wz(M('#ffffff',{map:'station:'+i,r:.7}), -0.65,0.65,0,1.6,0.08,0,B); ib(GOLD(), 0.08,0.4,0.05, 0,1.85,0.06,B); ib(GOLD(), 0.26,0.08,0.05, 0,1.9,0.06,B); }
   // consecration crosses
   if(s.consCross==='yes'){ const put = B => { cy(M('#7a1a1e',{r:.6}), 0.42,0.42,0.04, 0,0,0, B.clone().multiply(new THREE.Matrix4().makeRotationX(Math.PI/2)), 20); ib(GOLD(), 0.1,0.6,0.05, 0,0,0.05,B); ib(GOLD(), 0.6,0.1,0.05, 0,0,0.05,B); };
-    for(let i=0;i<5;i++){ const z = D*0.2+i*D*0.15; put(wallB('L',z+1.8,5.9)); put(wallB('R',z+1.8,5.9)); } put(wallB('B',-W*0.3,5.9)); put(wallB('B',W*0.3,5.9)); }
+    for(let i=0;i<5;i++){ const z = D*0.2+i*D*0.15; put(wallB('L',z+1.8,5.9)); put(wallB('R',z+1.8,5.9)); } if(W/2-G.ea > 3){ put(wallB('B',-(G.ea+W/2)/2,2.6)); put(wallB('B',(G.ea+W/2)/2,2.6)); } }
   // icons flanking the chancel, aumbry
   if(s.chancelArt==='icons') [['L',3],['R',3]].forEach(([wl,z],i) => { const B = wallB(wl,z,4.6); wz(M('#ffffff',{map:'icon:'+i,r:.45,m:.2}), -1.1,1.1,0,2.9,0.1,0,B); ib(GOLD(), 2.4,0.1,0.14, 0,-0.05,0.07,B); });
   if(s.aumbry==='yes'){ const B = wallB('L', 6.4, 3.9), r = 0.9; sm(archFrameGeo(1.5,1.7,'gothic',r,0.2,0.2), wood(DKOAK), 0,0,0.02,B); sm(archHeadGeo(1.5,1.7,'gothic',r,true), M('#c9a44a',{m:.35,r:.4,e:'#3a2a08',ei:.5}), 0,0,0.08,B);
@@ -1295,12 +1314,21 @@ function buildSeating(){
 /* ---------------- font and loose furnishings ---------------- */
 function buildFurnishings(){
   const {W,D} = G, s = ST, z = G.fontZ, B = mat4(0,0,z);
-  if(s.fontType==='asis'){ const om = wood('#d2a765'); cy(om, 1.35,1.35,2.9, 0,1.55,0, B, 8); cy(wood('#c2975a'), 1.55,1.6,0.2, 0,0.1,0, B, 8); cy(wood('#c2975a'), 1.6,1.5,0.22, 0,3.1,0, B, 8); cy(om, 0.55,1.4,0.35, 0,3.38,0, B, 8); ib(BRASS(), 0.08,0.6,0.08, 0,3.85,0,B); ib(BRASS(), 0.36,0.08,0.08, 0,3.95,0,B); }
+  if(s.fontType==='asis'){ const om = wood('#d2a765'), rim = wood('#c2975a');   // tall octagonal wood font on casters, steel bowl
+    cy(om, 1.0,1.0,2.6, 0,1.6,0, B, 8); cy(rim, 1.2,1.2,0.22, 0,0.36,0, B, 8); cy(rim, 1.2,1.1,0.26, 0,3.03,0, B, 8); cy(M('#c5c8cc',{m:.55,r:.25}), 0.9,0.7,0.1, 0,3.13,0, B, 20); cy(M('#8f9499',{m:.55,r:.3}), 0.78,0.78,0.03, 0,3.19,0, B, 20);
+    ib(om, 0.3,2.4,0.12, 0,1.5,1.0,B); ib(om, 0.3,0.3,0.14, 0,1.9,1.02,B,0,0); ib(om, 0.9,0.3,0.14, 0,2.3,1.02,B); for(const [x,zz] of [[-0.7,-0.7],[0.7,-0.7],[-0.7,0.7],[0.7,0.7]]) sp(M('#777',{m:.4,r:.4}), 0.12, x,0.12,zz, B); }
   else if(s.fontType==='oak'){ const om = M('#ffffff',{map:'panel:#8a5c30',r:.5}), dk = wood(DKOAK); cy(dk, 2.6,2.7,0.35, 0,0.17,0, B, 8); cy(om, 1.7,1.5,3.0, 0,1.85,0, B, 8); cy(dk, 1.95,1.75,0.3, 0,3.5,0, B, 8); sm(new THREE.ConeGeometry(1.7,3.4,8), wood(OAK), 0,5.35,0, B); cy(GOLD(), 0.3,0.3,0.2, 0,7.1,0, B, 8); ib(GOLD(), 0.1,0.8,0.1, 0,7.6,0,B); ib(GOLD(), 0.5,0.1,0.1, 0,7.75,0,B); }
   else { const st = M('#ffffff',{map:'lime',r:.7}); cy(st, 3.2,3.3,0.4, 0,0.2,0, B, 8); cy(st, 1.3,1.6,0.5, 0,0.65,0, B, 8); cy(st, 0.85,0.95,1.6, 0,1.7,0, B, 8); cy(st, 2.0,1.1,1.25, 0,3.1,0, B, 8); cy(M('#3a6ea0',{r:.08,m:.4}), 1.75,1.75,0.04, 0,3.71,0, B, 16); }
   if(s.paschal==='yes'){ const P = mat4(2.6,0,z-0.6); cy(BRASS(), 0.7,0.8,0.2, 0,0.1,0, P, 8); cy(BRASS(), 0.09,0.2,3.6, 0,2,0, P, 8); cy(BRASS(), 0.3,0.12,0.2, 0,3.9,0, P, 8); cy(M('#f6f0dc',{r:.5}), 0.13,0.13,2.6, 0,5.3,0, P, 10); ib(M('#a01c22'), 0.05,0.5,0.28, 0,5.6,0,P); ib(M('#a01c22'), 0.3,0.06,0.28, 0,5.7,0,P); flames.push(sp(MB('#ffd98a'), 0.07, 0,6.72,0, P, 2)); }
   if(s.procCross==='yes'){ const x = -(G.pw/2-1.4), P = mat4(x, G.floorAt(x,G.cz+1.6), G.cz+1.6); cy(wood(DKOAK), 0.5,0.6,0.3, 0,0.15,0, P, 8); cy(wood(DKOAK), 0.06,0.06,6.6, 0,3.5,0, P, 6); ib(BRASS(), 0.12,1.5,0.1, 0,7.3,0,P); ib(BRASS(), 1.0,0.12,0.1, 0,7.55,0,P);
     for(const dx of [-1.3,1.3]){ cy(wood(DKOAK), 0.35,0.4,0.25, dx,0.12,0, P, 8); cy(wood(DKOAK), 0.05,0.05,4.6, dx,2.4,0, P, 6); cy(BRASS(), 0.16,0.07,0.2, dx,4.75,0, P, 8); cy(M('#f3ecd8'), 0.05,0.05,0.8, dx,5.2,0, P, 6); flames.push(sp(MB('#ffd98a'), 0.05, dx,5.7,0, P, 2)); } }
+  // furnishings the congregation already owns, shown until a replacement is chosen
+  { const freeL = s.choir!=='chancel' && (s.organ==='asis' || s.choir==='rear' || s.loft==='yes'), zc0 = G.cz+3.2, xT = -Math.min(W/2-3, G.pw/2+G.stepsD+3.6);
+    if(s.credence==='no' && freeL && !G.apse){ const P = mat4(xT,0,zc0); ib(wood(PINE), 3.6,3.0,1.8, 0,1.5,0,P); ib(LINEN(), 3.8,3.05,2.0, 0,1.56,0,P); }
+    if(s.paschal==='no' && freeL && !G.apse){ const P = mat4(xT+0.4,0,zc0+2.6); cy(wood(PINE), 0.5,0.6,0.2, 0,0.1,0, P, 8); cy(wood(PINE), 0.1,0.14,3.2, 0,1.8,0, P, 8); cy(BRASS(), 0.22,0.1,0.15, 0,3.45,0, P, 8); cy(M('#f6f0dc',{r:.5}), 0.11,0.11,2.2, 0,4.6,0, P, 10); flames.push(sp(MB('#ffd98a'), 0.06, 0,5.8,0, P, 2)); }
+    if(s.procCross==='no'){ const P = mat4(W/2-2.4,0,G.apse ? 2.6 : 5.2), rd = M('#7a2a1c',{r:.6}), gd = M('#d8b04c',{m:.3,r:.45,e:'#3a2a08',ei:.4});   // San Damiano processional crucifix on its brass pole
+      cy(BRASS(), 0.45,0.55,0.14, 0,0.07,0, P, 10); cy(BRASS(), 0.06,0.06,5.6, 0,2.9,0, P, 8);
+      ib(rd, 0.62,2.5,0.1, 0,6.95,0,P); ib(rd, 1.75,0.85,0.1, 0,7.3,0,P); ib(rd, 0.95,0.5,0.1, 0,8.0,0,P); ib(gd, 0.46,2.3,0.04, 0,6.95,-0.06,P); ib(gd, 1.55,0.65,0.04, 0,7.3,-0.06,P); ib(M('#b98a66',{r:.7}), 0.2,1.5,0.03, 0,6.9,-0.09,P); ib(M('#b98a66',{r:.7}), 1.2,0.14,0.03, 0,7.45,-0.09,P); } }
   const zc = Math.min(D-3, G.lastRowZ+4.5);
   if(s.prayerCorner==='yes'){ const Bw = wallB('R', zc, 0), dk = wood(DKOAK); wz(M('#ffffff',{map:'icon:0',r:.45,m:.2}), -0.9,0.9,4.2,6.6,0.1,0,Bw); ib(GOLD(), 2.0,0.1,0.14, 0,4.15,0.07,Bw); ib(dk, 2.2,0.12,0.7, 0,3.6,0.35,Bw); sp(MB('#ff8a3a'), 0.09, 0.6,3.8,0.4, Bw); cy(M('#7a1220',{op:.8}), 0.1,0.08,0.25, -0.6,3.78,0.4, Bw, 8);
     ib(dk, 1.8,0.25,0.7, 0,0.4,2.4,Bw); ib(M('#6e1f26'), 1.7,0.1,0.6, 0,0.57,2.4,Bw); ib(dk, 1.8,2.6,0.14, 0,1.3,1.9,Bw); ib(dk, 1.9,0.12,0.7, 0,2.65,1.75,Bw); }
@@ -1308,18 +1336,19 @@ function buildFurnishings(){
     for(let i=0;i<14;i++){ const x = -1.1+(i%7)*0.36, up = i<7; cy(M(i%3?'#7a1220':'#f3ecd8',{op:.85}), 0.1,0.08,0.22, x,(up?3.66:3.16),(up?0.5:0.95), Bw, 8); if(i%2===0) sp(MB('#ffb45e'), 0.045, x,(up?3.82:3.32),(up?0.5:0.95), Bw, 1.6); } }
   if(s.confession==='yes'){ const Bw = wallB('R', 5.6, 0), dk = wood(DKOAK), om = wood(OAK); ib(om, 1.8,0.15,1.6, 0,1.5,1.2,Bw); ib(om, 1.8,3.3,0.15, 0,2.9,0.45,Bw); for(const sx of [-1,1]) ib(om, 0.15,2.2,1.6, sx*0.9,1.1,1.2,Bw);
     const K = Bw.clone().multiply(mat4(0,0,4.4,0)); ib(dk, 1.8,0.25,0.7, 0,0.4,0,K); ib(M('#4a2a6e'), 1.7,0.1,0.6, 0,0.57,0,K); ib(dk, 1.8,2.7,0.14, 0,1.35,-0.6,K); ib(dk, 1.9,0.12,0.7, 0,2.72,-0.75,K); ib(GOLD(), 0.08,0.5,0.03, 0,1.6,-0.52,K); ib(GOLD(), 0.3,0.08,0.03, 0,1.7,-0.52,K); }
-  if(s.welcome==='asis'){ const P = mat4(-(W/2-5.5),0,Math.min(D-3.5, G.lastRowZ+5),0.2); ib(M('#e9e6dc'), 6,0.12,2.5, 0,2.45,0,P); for(const [x,zz] of [[-2.7,-1],[2.7,-1],[-2.7,1],[2.7,1]]) ib(M('#888'), 0.08,2.4,0.08, x,1.2,zz,P); ib(WHITE(), 1.2,0.25,0.9, -1.5,2.65,0,P); ib(M('#c8d0d8'), 1.6,1.1,1.1, 1.2,3.1,0,P); }
-  else if(G.narthexOn){ const Bw = wallB('B', W*0.27, 0), om = M('#ffffff',{map:'panel:#8a5c30',r:.5}); ib(om, 5,3.4,1.6, 0,1.7,1.4,Bw); ib(wood(DKOAK), 5.3,0.14,1.9, 0,3.45,1.4,Bw); ib(wood(OAK), 3.4,3,0.3, -6,5,0.15,Bw); for(let i=0;i<3;i++) ib(WHITE(), 3,0.5,0.08, -6,4.1+i*0.9,0.34,Bw); }
+  if(s.welcome==='asis'){ const P = mat4(-(W/2-5.5),0,Math.min(D-3.5, G.lastRowZ+5),0.2); ib(M('#e9e6dc'), 6,0.12,2.5, 0,2.45,0,P); for(const [x,zz] of [[-2.7,-1],[2.7,-1],[-2.7,1],[2.7,1]]) ib(M('#888'), 0.08,2.4,0.08, x,1.2,zz,P); ib(WHITE(), 1.2,0.25,0.9, -1.5,2.65,0,P); ib(BLACK(), 1.9,1.1,0.08, 1.2,3.45,0.3,P); ib(BLACK(), 0.5,0.4,0.3, 1.2,2.7,0.3,P); }
+  else { const Bw = mat4(-G.ea,0,D+G.eD/2,Math.PI/2), om = M('#ffffff',{map:'panel:#8a5c30',r:.5}), L = Math.min(5, G.eD-2);   // welcome desk against the side of the entry alcove
+    ib(om, L,3.4,1.5, 0,1.7,0.8,Bw); ib(wood(DKOAK), L+0.3,0.14,1.8, 0,3.45,0.85,Bw); ib(wood(OAK), Math.min(3.4,L),2.2,0.2, 0,5.6,0.1,Bw); for(let i=0;i<2;i++) ib(WHITE(), Math.min(3,L-0.4),0.5,0.08, 0,5.1+i*0.9,0.24,Bw); }
 }
 
 /* ---------------- rear: narthex, loft ---------------- */
 function buildRear(){
   const {W,D,wallH} = G, s = ST, z = G.zNarthex, dk = wood(DKOAK), om = M('#ffffff',{map:'panel:#8a5c30',r:.5});
-  if(s.narthex==='screen'){ const gl = M('#cfe0e4',{r:.05,m:.1,op:.22,side:1}), top = Math.min(8.4, wallH-1.4);
-    for(const sx of [-1,1]){ const x0 = 4, x1 = W/2, len = x1-x0, xc = sx*(x0+len/2); ib(om, len,3,0.3, xc,1.5,z); ib(dk, len,0.2,0.4, xc,3.05,z); ib(dk, len,0.5,0.4, xc,top+0.25,z);
+  if(s.narthex==='screen'){ const gl = M('#cfe0e4',{r:.05,m:.1,op:.22,side:1}), top = G.eH-0.5;
+    for(const sx of [-1,1]){ const x0 = 4, x1 = Math.max(5, G.ea), len = x1-x0, xc = sx*(x0+len/2); ib(om, len,3,0.3, xc,1.5,z); ib(dk, len,0.2,0.4, xc,3.05,z); ib(dk, len,0.5,0.4, xc,top+0.25,z);
       wz(gl, sx>0?x0:-x1, sx>0?x1:-x0, 3.1, top, z, 0); for(let x=x0; x<=x1+0.01; x+=len/Math.round(len/3.5)) ib(dk, 0.28,top,0.36, sx*x,top/2,z); }
-    ib(dk, 8.6,0.6,0.4, 0,top+0.3,z); sm(archFrameGeo(8,top-1.6,'gothic',1.55,0.3,0.36), dk, 0,0,z-0.18); ib(GOLD(), 0.12,0.9,0.1, 0,top+1.3,z); ib(GOLD(), 0.55,0.12,0.1, 0,top+1.45,z); }
-  if(s.narthex==='half'){ for(const sx of [-1,1]){ const len = W/2-4, xc = sx*(4+len/2); ib(om, len,3.5,0.5, xc,1.75,z); ib(dk, len+0.2,0.16,0.8, xc,3.58,z); ib(dk, 0.8,4.2,0.8, sx*4.2,2.1,z); sp(GOLD(), 0.2, sx*4.2,4.4,z); } }
+    ib(dk, 8.6,0.6,0.4, 0,top+0.3,z); sm(archFrameGeo(8,top-1.6,'gothic',1.55,0.3,0.36), dk, 0,0,z-0.18); ib(GOLD(), 0.12,0.9,0.1, 0,top+1.3,z-0.42); ib(GOLD(), 0.55,0.12,0.1, 0,top+1.45,z-0.42); }
+  if(s.narthex==='half'){ for(const sx of [-1,1]){ const len = Math.max(1, G.ea-4), xc = sx*(4+len/2); ib(om, len,3.5,0.5, xc,1.75,z); ib(dk, len+0.2,0.16,0.8, xc,3.58,z); ib(dk, 0.8,4.2,0.8, sx*4.2,2.1,z); sp(GOLD(), 0.2, sx*4.2,4.4,z); } }
   if(s.loft==='yes'){ const lw = Math.min(26, W*0.52), ld = 11, y = 8.6, zc = D-ld/2; ib(dk, lw,0.6,ld, 0,y,zc); ib(om, lw,3.2,0.3, 0,y+1.9,D-ld); ib(dk, lw+0.3,0.2,0.5, 0,y+3.55,D-ld);
     for(const sx of [-1,1]){ ib(dk, 0.8,y,0.8, sx*(lw/2-0.5),y/2,D-ld+0.5); ib(om, 0.3,3.2,ld, sx*lw/2,y+1.9,zc); ib(dk, 0.3,1.6,0.45, sx*(lw/2-1.6),y-1,D-ld+0.5,null,0,sx*0.78); }
     for(let i=0;i<12;i++) ib(wood(OAK), 3.4,0.2,0.95, -lw/2-1.9, 0.72*(i+0.5), D-0.6-i*0.9); ib(dk, 0.2,3,11, -lw/2-3.7,5.5,D-5.6,null,0,0); }
@@ -1337,15 +1366,17 @@ function buildMusic(){
   const {W,D} = G, s = ST, cY = G.ceilY, rear = s.choir==='rear', loft = s.loft==='yes';
   const frontX = -(G.pw/2+G.stepsD+4.2);
   if(s.organ==='asis'){ // piano/organ under white cover, small pine stand
-    const P = rear ? mat4(-W*0.2,0,D-9,Math.PI) : mat4(Math.max(-W/2+3.5, frontX-0.3), 0, s.choir==='chancel' ? G.zStep+4 : 4.2, 0.12); ib(M('#efece4',{r:1}), 5.2,3.5,2.3, 0,1.75,0,P); ib(M('#e6e2d8',{r:1}), 5.4,0.1,2.5, 0,3.55,0,P);
-    if(!rear){ const P2 = mat4(-W/2+3, 0, 8.4, 0.5); ib(wood(PINE), 1.5,2.9,1.1, 0,1.45,0,P2); } }
+    // digital piano: at the rear on the window side today; it follows the choir if a choir area is chosen
+    const P = rear ? mat4(-W*0.2,0,D-9,Math.PI) : s.choir==='chancel' ? mat4(Math.max(-W/2+3.5, frontX-0.3), 0, G.zStep+4, 0.12) : mat4(Math.min(W/2-3.5, (G.ea+W/2)/2+0.5), 0, D-2.6, 0), bk = BLACK();
+    ib(bk, 4.6,0.45,1.3, 0,2.55,0,P); ib(WHITE(), 4.1,0.05,0.5, 0,2.8,-0.35,P); for(const sx of [-1,1]) ib(bk, 0.14,2.4,1.2, sx*2.2,1.2,0,P); ib(bk, 4.3,0.9,0.1, 0,1.5,0.5,P);
+    ib(bk, 2.0,0.12,0.9, 0,1.55,-1.9,P); for(const sx of [-1,1]) ib(bk, 0.1,1.5,0.8, sx*0.9,0.75,-1.9,P); ib(bk, 1.6,1.0,0.05, 0,3.5,0.35,P,0,0); }
   else { const big = s.organ==='pipe', dk = wood(DKOAK);
     // console
     const C = loft ? mat4(0,8.9,D-6.5,Math.PI) : rear ? mat4(-W*0.2,0,D-10,Math.PI) : mat4(Math.max(-W/2+4, frontX), 0, s.choir==='chancel' ? G.zStep+3.5 : 5.2, 0.5);
     ib(M('#ffffff',{map:'panel:#6b4426',r:.5}), 4.8,3.8,2.4, 0,1.9,0,C); ib(dk, 5,0.2,2.8, 0,3.9,-0.2,C); ib(WHITE(), 3.4,0.1,0.6, 0,2.7,1.3,C); ib(BLACK(), 3.4,0.1,0.5, 0,3.0,1.2,C); ib(dk, 3.6,0.2,1.2, 0,1.6,2.6,C); for(const sx of [-1,1]) ib(dk, 0.2,1.6,1.1, sx*1.7,0.8,2.6,C);
     // façade
     if(loft){ const w = big ? 16 : 10; pipeCase(mat4(0,8.9,D,Math.PI), w, x => cY(x)-8.9, big); }
-    else if(rear){ const w = Math.min(big ? 17 : 10, W/2-6.5), pos = -(4.5+w/2); pipeCase(wallB('B',pos,0), w, x => cY(pos-x), big); }
+    else if(rear){ const w = Math.max(4, Math.min(big ? 17 : 10, W/2-G.ea-1.4)), pos = -(G.ea+0.7+w/2); pipeCase(wallB('B',pos,0), w, x => cY(pos-x), big); }
     else { const w = Math.min(big ? 10.5 : 8.5, W/2-(G.apse ? G.cw/2 : G.outerPostX)-1), pos = -(W/2-0.4-w/2); pipeCase(wallB('C',pos,0), w, x => cY(pos+x), big); } }
   // choir stalls
   if(s.choir!=='asis'){ const om = wood(OAK), dk = wood(DKOAK), pn = M('#ffffff',{map:'panel:#8a5c30',r:.5});
@@ -1377,7 +1408,7 @@ function buildLights(){
 
 /* ---------------- exterior (low-detail context) ---------------- */
 function buildExterior(){
-  const {W,D,wallH,ridgeH,rise} = G, sd = M('#ffffff',{map:'siding',r:.9}), wh = M('#f4f3ee',{r:.7}), roof = M('#ffffff',{map:'shingle',r:.95,side:1});
+  const {W,wallH,ridgeH,rise} = G, D = G.D+G.eD, sd = M('#ffffff',{map:'siding',r:.9}), wh = M('#f4f3ee',{r:.7}), roof = M('#ffffff',{map:'shingle',r:.95,side:1});
   const o = 0.6, slope = rise/(W/2), PD = 13;
   fl(M('#ffffff',{map:'grass',r:1}), -700,700,-500,900,-0.06,22);
   const ze = G.cz-o;
@@ -1444,9 +1475,10 @@ const SEED = [
 function cleanState(o){ const s = asisState(); for(const k in s){ if(!(k in (o||{}))) continue; const g = GROUPS[k], v = o[k];
     if(g.num){ if(v==null || (typeof v==='number' && isFinite(v))) s[k] = v; } else if(g.opts.some(op => op[0]===v)) s[k] = v; } return s; }
 function save(){ try{ const costOv = {}; for(const k in COST) if(COST[k].lo!==COST_DEF[k].lo || COST[k].hi!==COST_DEF[k].hi) costOv[k] = [COST[k].lo, COST[k].hi];
-    localStorage.setItem(KEY, JSON.stringify({S, DIM, SET, costOv, schemes, phaseOv, phaseOrder, loadedName, seeded})); }catch(e){} }
+    localStorage.setItem(KEY, JSON.stringify({dv:2, S, DIM, SET, costOv, schemes, phaseOv, phaseOrder, loadedName, seeded})); }catch(e){} }
 function load(){ let d = null; try{ d = JSON.parse(localStorage.getItem(KEY)); }catch(e){}
-  if(d){ if(d.DIM) for(const m of DIM_META) if(typeof d.DIM[m[0]]==='number' && isFinite(d.DIM[m[0]])) DIM[m[0]] = Math.min(m[4], Math.max(m[3], d.DIM[m[0]]));
+  const OLD_DIM = {W:50, D:70, aisleW:6.5, rows:12, frontClear:8, rearClear:10, sideWinCount:2, sideWinW:8, sideWinH:7};   // defaults before the Nov 2026 photo update
+  if(d){ if(d.DIM) for(const m of DIM_META) if(typeof d.DIM[m[0]]==='number' && isFinite(d.DIM[m[0]]) && !(!(d.dv>=2) && d.DIM[m[0]]===OLD_DIM[m[0]])) DIM[m[0]] = Math.min(m[4], Math.max(m[3], d.DIM[m[0]]));
     if(d.SET){ if(isFinite(d.SET.cont)) SET.cont = +d.SET.cont; if(isFinite(d.SET.design)) SET.design = +d.SET.design; }
     if(d.costOv) for(const k in d.costOv) if(COST[k]){ COST[k].lo = +d.costOv[k][0]; COST[k].hi = +d.costOv[k][1]; }
     if(d.S) S = cleanState(d.S);
@@ -1528,8 +1560,9 @@ function stepWalk(dt){
   if(f || r){ const hm = Math.hypot(f,r), sp3 = (keys.has('ShiftLeft')||keys.has('ShiftRight') ? 18 : 8)*dt*Math.min(1,hm)/hm, sy = Math.sin(walk.yaw), cyw = Math.cos(walk.yaw);
     walk.x += (-sy*f + cyw*r)*sp3; walk.z += (-cyw*f - sy*r)*sp3; walk.eye = 5.5; walk.lift = 0; }
   const c2 = G.cw/2-0.9, inCh = G.apse && Math.abs(walk.x) < c2+0.1;
-  walk.z = Math.max(inCh ? G.cz+0.9 : 0.9, Math.min(G.D-0.9, walk.z));
-  const nar = G.apse && walk.z < 0.9; walk.x = Math.max(nar ? -c2 : -G.W/2+0.9, Math.min(nar ? c2 : G.xR-0.9, walk.x));
+  const inE = Math.abs(walk.x) < G.ea-0.9;
+  walk.z = Math.max(inCh ? G.cz+0.9 : 0.9, Math.min(G.D-0.9+(inE ? G.eD : 0), walk.z));
+  const nar = G.apse && walk.z < 0.9, alc = walk.z > G.D-0.9, e2 = G.ea-0.9; walk.x = Math.max(nar ? -c2 : alc ? -e2 : -G.W/2+0.9, Math.min(nar ? c2 : alc ? e2 : G.xR-0.9, walk.x));
   const ty = G.floorAt(walk.x, walk.z)+walk.eye+walk.lift; walk.y += (ty-walk.y)*Math.min(1, dt*10);
   camera.position.set(walk.x, walk.y, walk.z); camera.rotation.set(walk.pitch, walk.yaw, 0);
 }
