@@ -253,7 +253,7 @@ const DIM_META = [
   ['sideWinCount','Right-wall window pairs',3,0,6,1],
   ['sideWinW','Width of each window pair',5.5,3,16,0.5],
   ['sideWinH','Height of each window pair',5.5,3,10,0.25],
-  ['entryW','Entry alcove width (under the rear beam)',28,10,60,0.5],
+  ['entryW','Entry alcove width (under the rear beam)',36,10,60,0.5],
   ['entryD','Entry alcove depth',8,4,20,0.5],
   ['bay','Bay spacing (trusses, pilasters, pendants)',11.5,6,20,0.5],
   ['expBay','Expansion: added bay length (post spacing)',8,6,16,0.5],
@@ -630,7 +630,7 @@ function geo(s){
   g.outerPostX = Math.min(W/2-1, Math.max(g.doorX+2.3, d.platW/2-0.3));
   if(apse){ g.doorX = Math.min(g.doorX, g.cw/2-2.6); g.outerPostX = Math.min(g.outerPostX, g.cw/2-0.6); }
   // side-wall openings (z measured from the chancel wall)
-  g.openL = [{k:'door', z:D*0.14, w:3, h:6.8, y:0}, {k:'win', z:D*0.4, w:6.5, h:4.3, y:2.9}, {k:'door2', z:D-9, w:6, h:6.8, y:0}];
+  g.openL = [{k:'door', z:D*0.14, w:3, h:6.8, y:0}, {k:'win', z:D*0.7, w:6.5, h:4.3, y:2.9}, {k:'door2', z:D-5, w:6, h:6.8, y:0}];
   g.openR = [{k:'exit', z:D*0.17, w:3, h:6.8, y:0}];
   const n = d.sideWinCount, z0 = D*0.4, z1 = D-9, wy = 1.5, wh = Math.min(d.sideWinH, wallH-1.6-wy);
   for(let i=0;i<n;i++) g.openR.push({k:'glass', z: n===1 ? z0 : z0 + (z1-z0)*i/(n-1), w:d.sideWinW, h:wh, y:wy});
@@ -1085,7 +1085,7 @@ function buildSideWalls(){
     if(o.k==='door'){ // left side door (toward sacristy / wing)
       if(s.sacDoors==='asis'){ frame(B,w,h,y,trim); wz(M('#2b2521',{r:1}), -w/2,w/2,y,y+h,0.05,0,B); }
       else archDoor(B,w,h,s.sacDoors); }
-    else if(o.k==='win'){ frame(B,w,h,y,trim); wz(M('#b9c0bd',{r:.15,m:.3}), -w/2,w/2,y,y+h,0.05,0,B); ib(trim, 0.12,h,0.1, 0,y+h/2,0.07,B); if(lanc) lancet(B,w,h,y,wood(OAK)); }
+    else if(o.k==='win'){ frame(B,w,h,y,trim); wz(wood('#8a5a34'), -w/2,w/2,y,y+h,0.05,0,B); for(let i=1;i<4;i++) ib(M('#4a2c16',{r:.9}), 0.04,h,0.03, -w/2+i*w/4,y+h/2,0.06,B); if(lanc) lancet(B,w,h,y,wood(OAK)); }
     else if(o.k==='door2'){ frame(B,w,h,y,trim,0.4);   // glazed double doors to the wing
       for(const sx of [-1,1]){ ib(M('#e4e2dc',{r:.6}), w/2-0.05,h,0.1, sx*w/4,h/2,0.06,B); wz(M('#9fb1b3',{r:.12,m:.3}), sx*w/4-w/4+0.45, sx*w/4+w/4-0.45, 0.9, h-0.5, 0.12, 0, B); ib(BRASS(), 0.3,0.9,0.05, sx*0.28,3.4,0.13,B); ib(M('#8d8f92',{m:.4,r:.4}), 1.1,0.14,0.2, sx*(w/4+0.2),h-0.12,0.2,B); }
       if(lanc) lancet(B,w,h,y,wood(OAK)); }
@@ -1114,7 +1114,7 @@ function buildSideWalls(){
       if(yr-yb > 1.2){ cy(M('#3f78b8',{r:.6}), 0.95,0.95,0.06, 0,0.03,-yr, face, 28); cy(M('#f4f2ec',{r:.7}), 0.8,0.8,0.08, 0,0.04,-yr, face, 10); cy(M('#b3202a',{r:.6}), 0.38,0.38,0.1, 0,0.05,-yr, face, 16); ib(BLACK(), 0.09,0.42,0.04, 0,yr,0.12,Bq); ib(BLACK(), 0.3,0.09,0.04, 0,yr+0.07,0.12,Bq);
         cy(M('#f4f2ec',{r:.5}), 0.42,0.42,0.06, 0,0.03,-yb, face, 20); ib(BLACK(), 0.03,0.26,0.02, 0,yb+0.12,0.07,Bq); ib(BLACK(), 0.2,0.03,0.02, 0.09,yb,0.07,Bq); } }
     if(s.textiles==='asis'){ const bB = wallB('B', (ea+W/2)/2, 0); if(W/2-ea > 4){ wz(M('#efe9da',{r:.95}), -1.1,1.1,3.6,7.4,0.06,0,bB); ib(M('#d9a13a',{r:.7}), 0.5,2.2,0.02, 0,5.6,0.07,bB); ib(M('#d9a13a',{r:.7}), 1.3,0.3,0.02, 0,6.2,0.07,bB); ib(wood(TRIM), 2.4,0.08,0.08, 0,7.45,0.06,bB); } }
-    { const pB = wallB('B', -(ea+W/2)/2, 0); if(W/2-ea > 6) for(const dx of [-2.1,0,2.1]){ ib(wood(DKOAK), 1.7,2.4,0.06, dx,5.6,0.04,pB); wz(M('#d9d2c2',{r:.8}), dx-0.7,dx+0.7,4.6,6.6,0.08,0,pB); } }
+    { const pB = wallB('B', -(ea+W/2)/2, 0); if(W/2-ea > 5.5) for(const dx of [-1.85,0,1.85]){ ib(wood(DKOAK), 1.7,2.4,0.06, dx,5.6,0.04,pB); wz(M('#d9d2c2',{r:.8}), dx-0.7,dx+0.7,4.6,6.6,0.08,0,pB); } }
     if(s.stoup==='yes'){ const b2 = BA(-4.4); cy(M('#d8ceb6',{map:'lime',r:.7}), 0.55,0.3,0.45, 0,3.5,0.5, b2, 8); cy(M('#3a6ea0',{r:.1,m:.3}), 0.46,0.46,0.03, 0,3.72,0.5, b2, 12); ib(M('#d8ceb6',{r:.8}), 0.5,0.9,0.3, 0,3.0,0.15,b2); ib(GOLD(), 0.1,0.7,0.05, 0,4.9,0.04,b2); ib(GOLD(), 0.42,0.1,0.05, 0,5.05,0.04,b2); }
     if(s.roseWin==='yes'){ const r = G.roseR, y = wallH + G.rise*0.42; sm(new THREE.CircleGeometry(r,40), MB('#ffffff',{map:'rosewin'}), 0,y,0.06, B);
       sm(new THREE.TorusGeometry(r+0.12,0.22,8,40), M('#d8ceb6',{map:'lime',r:.8}), 0,y,0.08, B); } }
@@ -1335,7 +1335,7 @@ function buildFurnishings(){
     for(let i=0;i<14;i++){ const x = -1.1+(i%7)*0.36, up = i<7; cy(M(i%3?'#7a1220':'#f3ecd8',{op:.85}), 0.1,0.08,0.22, x,(up?3.66:3.16),(up?0.5:0.95), Bw, 8); if(i%2===0) sp(MB('#ffb45e'), 0.045, x,(up?3.82:3.32),(up?0.5:0.95), Bw, 1.6); } }
   if(s.confession==='yes'){ const Bw = wallB('R', 5.6, 0), dk = wood(DKOAK), om = wood(OAK); ib(om, 1.8,0.15,1.6, 0,1.5,1.2,Bw); ib(om, 1.8,3.3,0.15, 0,2.9,0.45,Bw); for(const sx of [-1,1]) ib(om, 0.15,2.2,1.6, sx*0.9,1.1,1.2,Bw);
     const K = Bw.clone().multiply(mat4(0,0,4.4,0)); ib(dk, 1.8,0.25,0.7, 0,0.4,0,K); ib(M('#4a2a6e'), 1.7,0.1,0.6, 0,0.57,0,K); ib(dk, 1.8,2.7,0.14, 0,1.35,-0.6,K); ib(dk, 1.9,0.12,0.7, 0,2.72,-0.75,K); ib(GOLD(), 0.08,0.5,0.03, 0,1.6,-0.52,K); ib(GOLD(), 0.3,0.08,0.03, 0,1.7,-0.52,K); }
-  if(s.welcome==='asis'){ const P = mat4(-Math.max(G.ea+3.4, W/2-3.6),0,D-1.7,0); ib(M('#e9e6dc'), 6,0.12,2.5, 0,2.45,0,P); for(const [x,zz] of [[-2.7,-1],[2.7,-1],[-2.7,1],[2.7,1]]) ib(M('#888'), 0.08,2.4,0.08, x,1.2,zz,P); ib(WHITE(), 1.2,0.25,0.9, -1.5,2.65,0,P); ib(BLACK(), 1.9,1.1,0.08, 1.2,3.45,0.3,P); ib(BLACK(), 0.5,0.4,0.3, 1.2,2.7,0.3,P); }
+  if(s.welcome==='asis'){ const tl = Math.min(6, G.ea-1), P = mat4(-(G.ea-0.6-tl/2),0,D+Math.min(1.7,G.eD/2),0); ib(wood('#7a4a2a'), tl,0.12,2.5, 0,2.45,0,P); for(const [x,zz] of [[-1,-1],[1,-1],[-1,1],[1,1]]) ib(M('#3a3a3c'), 0.08,2.4,0.08, x*(tl/2-0.3),1.2,zz,P); ib(WHITE(), 1.2,0.25,0.9, -1.5,2.65,0,P); ib(BLACK(), 1.9,1.1,0.08, 1.2,3.45,0.3,P); ib(BLACK(), 0.5,0.4,0.3, 1.2,2.7,0.3,P); }
   else { const Bw = mat4(-(G.ea*0.67+1.2),0,D+G.eD,Math.PI), om = M('#ffffff',{map:'panel:#8a5c30',r:.5}), L = Math.max(2.5, Math.min(5, G.ea*0.67-2.6));   // welcome desk against the back wall of the entry alcove, clear of the corner-room door
     ib(om, L,3.4,1.5, 0,1.7,0.8,Bw); ib(wood(DKOAK), L+0.3,0.14,1.8, 0,3.45,0.85,Bw); ib(wood(OAK), Math.min(3.4,L),2.2,0.2, 0,5.6,0.1,Bw); for(let i=0;i<2;i++) ib(WHITE(), Math.min(3,L-0.4),0.5,0.08, 0,5.1+i*0.9,0.24,Bw); }
 }
@@ -1477,9 +1477,9 @@ const SEED = [
 function cleanState(o){ const s = asisState(); for(const k in s){ if(!(k in (o||{}))) continue; const g = GROUPS[k], v = o[k];
     if(g.num){ if(v==null || (typeof v==='number' && isFinite(v))) s[k] = v; } else if(g.opts.some(op => op[0]===v)) s[k] = v; } return s; }
 function save(){ try{ const costOv = {}; for(const k in COST) if(COST[k].lo!==COST_DEF[k].lo || COST[k].hi!==COST_DEF[k].hi) costOv[k] = [COST[k].lo, COST[k].hi];
-    localStorage.setItem(KEY, JSON.stringify({dv:3, S, DIM, SET, costOv, schemes, phaseOv, phaseOrder, loadedName, seeded})); }catch(e){} }
+    localStorage.setItem(KEY, JSON.stringify({dv:4, S, DIM, SET, costOv, schemes, phaseOv, phaseOrder, loadedName, seeded})); }catch(e){} }
 function load(){ let d = null; try{ d = JSON.parse(localStorage.getItem(KEY)); }catch(e){}
-  const OLD_DIM = [[2,{W:50, D:70, aisleW:6.5, rows:12, frontClear:8, rearClear:10, sideWinCount:2, sideWinW:8, sideWinH:7}], [3,{platW:30}]];   // [data version, defaults replaced in that version]
+  const OLD_DIM = [[2,{W:50, D:70, aisleW:6.5, rows:12, frontClear:8, rearClear:10, sideWinCount:2, sideWinW:8, sideWinH:7}], [3,{platW:30}], [4,{entryW:28}]];   // [data version, defaults replaced in that version]
   const stale = (k,v) => OLD_DIM.some(([ver,o]) => !(d.dv>=ver) && o[k]===v);
   if(d){ if(d.DIM) for(const m of DIM_META) if(typeof d.DIM[m[0]]==='number' && isFinite(d.DIM[m[0]]) && !stale(m[0], d.DIM[m[0]])) DIM[m[0]] = Math.min(m[4], Math.max(m[3], d.DIM[m[0]]));
     if(d.SET){ if(isFinite(d.SET.cont)) SET.cont = +d.SET.cont; if(isFinite(d.SET.design)) SET.design = +d.SET.design; }
