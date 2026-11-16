@@ -1106,9 +1106,9 @@ function buildSideWalls(){
   { const ea = G.ea, eH = G.eH, BA = x => mat4(x,0,D+G.eD,Math.PI), B = BA(0), w = 6, h = 6.9; frame(B,w,h,0,trim,0.4);   // French doors on the back wall of the entry alcove
     for(const sx of [-1,1]){ ib(M('#eceae4',{r:.6}), w/2-0.04,h,0.1, sx*w/4,h/2,0.06,B); wz(outside, sx*w/4-1.05, sx*w/4+1.05, 0.9, h-0.5, 0.12, 0, B); ib(BRASS(), 0.12,0.12,0.14, sx*0.25,3.3,0.16,B); }
     exitSign(B, Math.min(h+0.85, eH-0.4));
-    for(const sx of [-1,1]){ const wB = BA(sx*(ea/3+Math.min(2.3,ea*0.17))), cB = BA(sx*(ea-Math.min(2.4,ea*0.2)));     // narrow window and closet door in each side bay
+    for(const sx of [-1,1]){ const wB = BA(sx*(ea/3+Math.min(2.3,ea*0.17))), cB = mat4(sx*ea,0,D+G.eD/2,-sx*Math.PI/2);     // narrow window in each side bay; a door in each side wall of the alcove leads to the corner room
       frame(wB,1.7,5.2,1.5,trim,0.35); ib(WHITE(), 1.7,5.2,0.08, 0,4.1,0.05,wB); wz(outside, -0.65,0.65,1.7,6.5,0.1,0,wB);
-      if(ea>8){ frame(cB,2.8,6.6,0,trim,0.35); wz(M('#2b2521',{r:1}), -1.4,1.4,0,6.6,0.05,0,cB); }
+      if(G.eD>4){ frame(cB,2.8,6.6,0,trim,0.35); wz(M('#2b2521',{r:1}), -1.4,1.4,0,6.6,0.05,0,cB); }
       const gB = wallB('B', sx*Math.min(W/2-2.6, ea+3.4), 0); ib(M('#e9e7e1',{r:.6}), 4.2,1.3,0.1, 0,eH+0.4,0.05,gB); for(let i=0;i<4;i++) ib(M('#9a9c9e',{r:.7}), 3.9,0.08,0.05, 0,eH-0.05+i*0.3,0.11,gB); }
     if(s.roseWin!=='yes'){ const yb = eH+1.4, top = G.ceilY(0), yr = Math.min(top-1.6, yb+2.3), Bq = wallB('B',0,0), face = Bq.clone().multiply(new THREE.Matrix4().makeRotationX(Math.PI/2));   // Luther rose and clock on the gable
       if(yr-yb > 1.2){ cy(M('#3f78b8',{r:.6}), 0.95,0.95,0.06, 0,0.03,-yr, face, 28); cy(M('#f4f2ec',{r:.7}), 0.8,0.8,0.08, 0,0.04,-yr, face, 10); cy(M('#b3202a',{r:.6}), 0.38,0.38,0.1, 0,0.05,-yr, face, 16); ib(BLACK(), 0.09,0.42,0.04, 0,yr,0.12,Bq); ib(BLACK(), 0.3,0.09,0.04, 0,yr+0.07,0.12,Bq);
@@ -1335,8 +1335,8 @@ function buildFurnishings(){
     for(let i=0;i<14;i++){ const x = -1.1+(i%7)*0.36, up = i<7; cy(M(i%3?'#7a1220':'#f3ecd8',{op:.85}), 0.1,0.08,0.22, x,(up?3.66:3.16),(up?0.5:0.95), Bw, 8); if(i%2===0) sp(MB('#ffb45e'), 0.045, x,(up?3.82:3.32),(up?0.5:0.95), Bw, 1.6); } }
   if(s.confession==='yes'){ const Bw = wallB('R', 5.6, 0), dk = wood(DKOAK), om = wood(OAK); ib(om, 1.8,0.15,1.6, 0,1.5,1.2,Bw); ib(om, 1.8,3.3,0.15, 0,2.9,0.45,Bw); for(const sx of [-1,1]) ib(om, 0.15,2.2,1.6, sx*0.9,1.1,1.2,Bw);
     const K = Bw.clone().multiply(mat4(0,0,4.4,0)); ib(dk, 1.8,0.25,0.7, 0,0.4,0,K); ib(M('#4a2a6e'), 1.7,0.1,0.6, 0,0.57,0,K); ib(dk, 1.8,2.7,0.14, 0,1.35,-0.6,K); ib(dk, 1.9,0.12,0.7, 0,2.72,-0.75,K); ib(GOLD(), 0.08,0.5,0.03, 0,1.6,-0.52,K); ib(GOLD(), 0.3,0.08,0.03, 0,1.7,-0.52,K); }
-  if(s.welcome==='asis'){ const P = mat4(-(W/2-5.5),0,Math.min(D-3.5, G.lastRowZ+5),0.2); ib(M('#e9e6dc'), 6,0.12,2.5, 0,2.45,0,P); for(const [x,zz] of [[-2.7,-1],[2.7,-1],[-2.7,1],[2.7,1]]) ib(M('#888'), 0.08,2.4,0.08, x,1.2,zz,P); ib(WHITE(), 1.2,0.25,0.9, -1.5,2.65,0,P); ib(BLACK(), 1.9,1.1,0.08, 1.2,3.45,0.3,P); ib(BLACK(), 0.5,0.4,0.3, 1.2,2.7,0.3,P); }
-  else { const Bw = mat4(-G.ea,0,D+G.eD/2,Math.PI/2), om = M('#ffffff',{map:'panel:#8a5c30',r:.5}), L = Math.min(5, G.eD-2);   // welcome desk against the side of the entry alcove
+  if(s.welcome==='asis'){ const P = mat4(-Math.max(G.ea+3.4, W/2-3.6),0,D-1.7,0); ib(M('#e9e6dc'), 6,0.12,2.5, 0,2.45,0,P); for(const [x,zz] of [[-2.7,-1],[2.7,-1],[-2.7,1],[2.7,1]]) ib(M('#888'), 0.08,2.4,0.08, x,1.2,zz,P); ib(WHITE(), 1.2,0.25,0.9, -1.5,2.65,0,P); ib(BLACK(), 1.9,1.1,0.08, 1.2,3.45,0.3,P); ib(BLACK(), 0.5,0.4,0.3, 1.2,2.7,0.3,P); }
+  else { const Bw = mat4(-(G.ea*0.67+1.2),0,D+G.eD,Math.PI), om = M('#ffffff',{map:'panel:#8a5c30',r:.5}), L = Math.max(2.5, Math.min(5, G.ea*0.67-2.6));   // welcome desk against the back wall of the entry alcove, clear of the corner-room door
     ib(om, L,3.4,1.5, 0,1.7,0.8,Bw); ib(wood(DKOAK), L+0.3,0.14,1.8, 0,3.45,0.85,Bw); ib(wood(OAK), Math.min(3.4,L),2.2,0.2, 0,5.6,0.1,Bw); for(let i=0;i<2;i++) ib(WHITE(), Math.min(3,L-0.4),0.5,0.08, 0,5.1+i*0.9,0.24,Bw); }
 }
 
